@@ -116,7 +116,12 @@ $page_title = $product['name'] . " - HvostX";
 
             <div class="product-description mb-4">
                 <h4>Описание</h4>
-                <p><?php echo nl2br(htmlspecialchars($product['description'])); ?></p>
+                <div id="product-description-content" style="max-height: 150px; overflow: hidden; transition: max-height 0.3s ease;">
+                    <p><?php echo nl2br(htmlspecialchars($product['description'])); ?></p>
+                </div>
+                <button type="button" class="btn btn-link btn-sm mt-2 p-0" id="toggle-description" onclick="toggleDescription()">
+                    <i class="bi bi-chevron-down me-1"></i><span>Развернуть</span>
+                </button>
             </div>
 
             <div class="product-actions mb-4">
@@ -535,5 +540,24 @@ function showNotificationError(message) {
     setTimeout(() => {
         document.body.removeChild(notification);
     }, 3000);
+}
+
+function toggleDescription() {
+    const content = document.getElementById('product-description-content');
+    const btn = document.getElementById('toggle-description');
+    const icon = btn.querySelector('i');
+    const text = btn.querySelector('span');
+
+    if (content.style.maxHeight === 'none') {
+        content.style.maxHeight = '150px';
+        icon.classList.remove('bi-chevron-up');
+        icon.classList.add('bi-chevron-down');
+        text.textContent = 'Развернуть';
+    } else {
+        content.style.maxHeight = 'none';
+        icon.classList.remove('bi-chevron-down');
+        icon.classList.add('bi-chevron-up');
+        text.textContent = 'Свернуть';
+    }
 }
 </script>
