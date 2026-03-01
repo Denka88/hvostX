@@ -111,7 +111,7 @@ $page_title = $product['name'] . " - HvostX";
             </div>
 
             <div class="product-price mb-4">
-                <h3 class="text-success"><?php echo number_format($product['price'], 2); ?> ₽</h3>
+                <h3 class="text-success"><?php echo number_format($product['price'], 0, '.', ' '); ?> ₽</h3>
             </div>
 
             <div class="product-description mb-4">
@@ -158,7 +158,7 @@ $page_title = $product['name'] . " - HvostX";
                          class="card-img-top" alt="<?php echo htmlspecialchars($related_product['name']); ?>">
                     <div class="card-body">
                         <h5 class="card-title"><?php echo htmlspecialchars($related_product['name']); ?></h5>
-                        <p class="text-success fw-bold"><?php echo number_format($related_product['price'], 2); ?> ₽</p>
+                        <p class="text-success fw-bold"><?php echo number_format($related_product['price'], 0, '.', ' '); ?> ₽</p>
                         <a href="product_single.php?id=<?php echo $related_product['id']; ?>"
                            class="btn btn-sm btn-outline-primary">Подробнее</a>
                     </div>

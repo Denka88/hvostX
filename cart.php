@@ -212,7 +212,7 @@ foreach ($cart_items as $item) {
                                     <?php echo htmlspecialchars($item['name']); ?>
                                 </div>
                             </td>
-                            <td><?php echo number_format($item['price'], 2); ?> ₽</td>
+                            <td><?php echo number_format($item['price'], 0, '.', ' '); ?> ₽</td>
                             <td>
                                 <div class="quantity-control d-flex align-items-center">
                                     <button type="button" class="btn btn-outline-secondary btn-sm quantity-btn minus-btn" onclick="updateQuantity(<?php echo $item['id']; ?>, -1)">-</button>
@@ -221,7 +221,7 @@ foreach ($cart_items as $item) {
                                     <button type="button" class="btn btn-outline-secondary btn-sm quantity-btn plus-btn" onclick="updateQuantity(<?php echo $item['id']; ?>, 1)">+</button>
                                 </div>
                             </td>
-                            <td class="item-total"><?php echo number_format($item['price'] * $item['quantity'], 2); ?> ₽</td>
+                            <td class="item-total"><?php echo number_format($item['price'] * $item['quantity'], 0, '.', ' '); ?> ₽</td>
                             <td>
                                 <button type="button" class="btn btn-sm btn-danger remove-btn" 
                                         data-product-id="<?php echo $item['id']; ?>" 
@@ -235,7 +235,7 @@ foreach ($cart_items as $item) {
                     <tfoot>
                         <tr>
                             <th colspan="3">Итого:</th>
-                            <th colspan="2" class="cart-total"><?php echo number_format($total_price, 2); ?> ₽</th>
+                            <th colspan="2" class="cart-total"><?php echo number_format($total_price, 0, '.', ' '); ?> ₽</th>
                         </tr>
                     </tfoot>
                 </table>

@@ -123,7 +123,7 @@ if (!empty($params)) {
                                         <td><?php echo $product['id']; ?></td>
                                         <td><?php echo htmlspecialchars($product['name']); ?></td>
                                         <td><?php echo htmlspecialchars($product['category_name'] ?? 'Без категории'); ?></td>
-                                        <td><?php echo number_format($product['price'], 2); ?> ₽</td>
+                                        <td><?php echo number_format($product['price'], 0, '.', ' '); ?> ₽</td>
                                         <td>
                                             <span class="badge <?php echo $product['is_active'] ? 'bg-success' : 'bg-secondary'; ?>">
                                                 <?php echo $product['is_active'] ? 'Да' : 'Нет'; ?>

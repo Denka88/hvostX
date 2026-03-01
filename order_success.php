@@ -179,16 +179,16 @@ $page_title = "Заказ #" . $order_id . " - HvostX";
                                                     <?php echo htmlspecialchars($item['name']); ?>
                                                 </div>
                                             </td>
-                                            <td><?php echo number_format($item['price'], 2); ?> ₽</td>
+                                            <td><?php echo number_format($item['price'], 0, '.', ' '); ?> ₽</td>
                                             <td><?php echo $item['quantity']; ?> шт.</td>
-                                            <td><?php echo number_format($item['price'] * $item['quantity'], 2); ?> ₽</td>
+                                            <td><?php echo number_format($item['price'] * $item['quantity'], 0, '.', ' '); ?> ₽</td>
                                         </tr>
                                         <?php endforeach; ?>
                                     </tbody>
                                     <tfoot>
                                         <tr>
                                             <th colspan="3">Итого:</th>
-                                            <th class="text-success fs-5"><?php echo number_format($order['total_amount'], 2); ?> ₽</th>
+                                            <th class="text-success fs-5"><?php echo number_format($order['total_amount'], 0, '.', ' '); ?> ₽</th>
                                         </tr>
                                     </tfoot>
                                 </table>

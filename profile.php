@@ -164,7 +164,7 @@ $page_title = "Профиль - HvostX";
                                 <tr>
                                     <td><strong>#<?php echo $order['id']; ?></strong></td>
                                     <td><?php echo date('d.m.Y H:i', strtotime($order['created_at'])); ?></td>
-                                    <td><strong><?php echo number_format($order['total_amount'], 2); ?> ₽</strong></td>
+                                    <td><strong><?php echo number_format($order['total_amount'], 0, '.', ' '); ?> ₽</strong></td>
                                     <td>
                                         <span class="badge <?php echo $status['class']; ?>">
                                             <?php echo $status['label']; ?>

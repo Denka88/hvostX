@@ -232,17 +232,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                                  class="rounded">
                                             <div>
                                                 <h6 class="mb-0"><?php echo htmlspecialchars($item['name']); ?></h6>
-                                                <small class="text-muted"><?php echo $item['quantity']; ?> шт. × <?php echo number_format($item['price'], 2); ?> ₽</small>
+                                                <small class="text-muted"><?php echo $item['quantity']; ?> шт. × <?php echo number_format($item['price'], 0, '.', ' '); ?> ₽</small>
                                             </div>
                                         </div>
-                                        <span class="fw-bold"><?php echo number_format($item['price'] * $item['quantity'], 2); ?> ₽</span>
+                                        <span class="fw-bold"><?php echo number_format($item['price'] * $item['quantity'], 0, '.', ' '); ?> ₽</span>
                                     </div>
                                     <?php endforeach; ?>
 
                                     <div class="mb-3">
                                         <div class="d-flex justify-content-between">
                                             <span>Товары:</span>
-                                            <span class="fw-bold"><?php echo number_format($total_price, 2); ?> ₽</span>
+                                            <span class="fw-bold"><?php echo number_format($total_price, 0, '.', ' '); ?> ₽</span>
                                         </div>
                                     </div>
 
@@ -257,7 +257,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                                     <div class="d-flex justify-content-between mb-3">
                                         <strong class="fs-5">Итого:</strong>
-                                        <strong class="fs-4 text-success" id="order-total"><?php echo number_format($total_price, 2); ?> ₽</strong>
+                                        <strong class="fs-4 text-success" id="order-total"><?php echo number_format($total_price, 0, '.', ' '); ?> ₽</strong>
                                     </div>
 
                                     <button type="submit" class="btn btn-success btn-lg w-100">

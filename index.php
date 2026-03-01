@@ -72,7 +72,7 @@ $page_title = "Главная - HvostX";
                         <p class="card-text text-muted mb-2">
                             <?php echo mb_substr(htmlspecialchars($product['description']), 0, 80); ?>...
                         </p>
-                        <p class="text-success fw-bold fs-4 mb-3"><?php echo number_format($product['price'], 2); ?> ₽</p>
+                        <p class="text-success fw-bold fs-4 mb-3"><?php echo number_format($product['price'], 0, '.', ' '); ?> ₽</p>
                         
                         <?php if (!empty($product['total_sold']) && $product['total_sold'] > 0): ?>
                         <p class="text-muted mb-2 small">

@@ -216,8 +216,8 @@ $page_title = "Заказ #{$order_id} - HvostX";
                                         </div>
                                     </td>
                                     <td class="text-center"><?php echo $item['quantity']; ?></td>
-                                    <td class="text-end"><?php echo number_format($item['price'], 2); ?> ₽</td>
-                                    <td class="text-end"><strong><?php echo number_format($item_sum, 2); ?> ₽</strong></td>
+                                    <td class="text-end"><?php echo number_format($item['price'], 0, '.', ' '); ?> ₽</td>
+                                    <td class="text-end"><strong><?php echo number_format($item_sum, 0, '.', ' '); ?> ₽</strong></td>
                                 </tr>
                                 <?php endforeach; ?>
                             </tbody>
@@ -225,7 +225,7 @@ $page_title = "Заказ #{$order_id} - HvostX";
                                 <tr>
                                     <th colspan="3" class="text-end">Итого:</th>
                                     <th class="text-end">
-                                        <strong class="fs-5"><?php echo number_format($total, 2); ?> ₽</strong>
+                                        <strong class="fs-5"><?php echo number_format($total, 0, '.', ' '); ?> ₽</strong>
                                     </th>
                                 </tr>
                             </tfoot>
@@ -236,8 +236,8 @@ $page_title = "Заказ #{$order_id} - HvostX";
                     <?php if ($order['total_amount'] != $total && $order['total_amount'] > 0): ?>
                     <div class="alert alert-warning mt-3">
                         <i class="bi bi-exclamation-triangle me-2"></i>
-                        Обратите внимание: сумма заказа в базе данных (<?php echo number_format($order['total_amount'], 2); ?> ₽) 
-                        отличается от рассчитанной суммы товаров (<?php echo number_format($total, 2); ?> ₽)
+                        Обратите внимание: сумма заказа в базе данных (<?php echo number_format($order['total_amount'], 0, '.', ' '); ?> ₽)
+                        отличается от рассчитанной суммы товаров (<?php echo number_format($total, 0, '.', ' '); ?> ₽)
                     </div>
                     <?php endif; ?>
                 </div>

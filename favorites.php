@@ -76,7 +76,7 @@ $page_title = "Избранное - HvostX";
                     <p class="card-text text-muted mb-2">
                         <?php echo mb_substr(htmlspecialchars($favorite['description']), 0, 80); ?>...
                     </p>
-                    <p class="text-success fw-bold fs-4 mb-3"><?php echo number_format($favorite['price'], 2); ?> ₽</p>
+                    <p class="text-success fw-bold fs-4 mb-3"><?php echo number_format($favorite['price'], 0, '.', ' '); ?> ₽</p>
 
                     <div class="d-grid gap-2">
                         <a href="product_single.php?id=<?php echo $favorite['product_id']; ?>"
