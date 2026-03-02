@@ -414,6 +414,10 @@ footer a:hover {
     font-weight: 500;
 }
 
+.bg-info{
+    background-color: rgb(240 191 13) !important;
+}
+
 .badge-success {
     background-color: var(--success-color);
 }
