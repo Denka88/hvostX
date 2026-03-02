@@ -370,7 +370,15 @@ document.getElementById('review-form')?.addEventListener('submit', function(e) {
     const productId = form.dataset.productId;
     const rating = form.querySelector('input[name="rating"]:checked')?.value;
     const comment = form.querySelector('#comment').value.trim();
-    const recaptchaResponse = form.querySelector('[name="g-recaptcha-response"]')?.value;
+    
+    // Получаем widget ID и токен reCAPTCHA
+    const recaptchaWidget = form.querySelector('.g-recaptcha');
+    const widgetId = recaptchaWidget?.getAttribute('data-widget-id');
+    
+    let recaptchaResponse = null;
+    if (typeof grecaptcha !== 'undefined' && widgetId) {
+        recaptchaResponse = grecaptcha.getResponse(widgetId);
+    }
 
     if (!rating) {
         alert('Пожалуйста, выберите оценку');
@@ -409,17 +417,23 @@ document.getElementById('review-form')?.addEventListener('submit', function(e) {
                 icon.classList.remove('fas', 'text-warning');
                 icon.classList.add('far');
             });
-            if (typeof grecaptcha !== 'undefined') {
-                grecaptcha.reset();
+            if (typeof grecaptcha !== 'undefined' && widgetId) {
+                grecaptcha.reset(widgetId);
             }
             setTimeout(() => location.reload(), 1000);
         } else {
             alert(data.message || 'Ошибка при отправке отзыва');
+            if (typeof grecaptcha !== 'undefined' && widgetId) {
+                grecaptcha.reset(widgetId);
+            }
         }
     })
     .catch(error => {
         console.error('Ошибка:', error);
         alert('Произошла ошибка при отправке отзыва');
+        if (typeof grecaptcha !== 'undefined' && widgetId) {
+            grecaptcha.reset(widgetId);
+        }
     });
 });
 </script>
@@ -560,4 +574,24 @@ function toggleDescription() {
         text.textContent = 'Свернуть';
     }
 }
+
+// Инициализация reCAPTCHA виджета для формы отзывов
+document.addEventListener('DOMContentLoaded', function() {
+    const reviewForm = document.getElementById('review-form');
+    if (reviewForm && typeof grecaptcha !== 'undefined') {
+        const recaptchaContainer = reviewForm.querySelector('.g-recaptcha');
+        if (recaptchaContainer && !recaptchaContainer.getAttribute('data-widget-id')) {
+            const widgetId = grecaptcha.render(recaptchaContainer, {
+                sitekey: recaptchaContainer.getAttribute('data-sitekey'),
+                callback: function(response) {
+                    // Токен получен
+                },
+                'expired-callback': function() {
+                    // Токен истек
+                }
+            });
+            recaptchaContainer.setAttribute('data-widget-id', widgetId);
+        }
+    }
+});
 </script>

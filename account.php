@@ -66,6 +66,7 @@ if (isset($_POST['submit_register'])) {
         $errors[] = $recaptcha_result['message'];
     }
     if (empty($login) || strlen($login) < 3) $errors[] = 'Логин должен содержать не менее 3 символов';
+    if (preg_match('/[\p{Cyrillic}]/u', $login)) $errors[] = 'Логин не должен содержать кириллические символы';
     if (empty($name)) $errors[] = 'Пожалуйста, укажите ваше имя';
     if (empty($email) || !filter_var($email, FILTER_VALIDATE_EMAIL)) $errors[] = 'Пожалуйста, укажите корректный email';
     if (empty($password)) $errors[] = 'Пожалуйста, укажите пароль';
@@ -194,8 +195,10 @@ if (isset($_POST['submit_register'])) {
                                 <div class="mb-3">
                                     <label for="register-login" class="form-label">Логин *</label>
                                     <input type="text" class="form-control" id="register-login" name="login" required
-                                           value="<?php echo isset($_POST['login']) ? htmlspecialchars($_POST['login']) : ''; ?>">
-                                    <div class="form-text">Минимум 3 символа</div>
+                                           value="<?php echo isset($_POST['login']) ? htmlspecialchars($_POST['login']) : ''; ?>"
+                                           pattern="[a-zA-Z0-9_]+"
+                                           title="Логин может содержать только латинские буквы, цифры и знак подчёркивания">
+                                    <div class="form-text">Минимум 3 символа, только латиница</div>
                                 </div>
                                 <div class="mb-3">
                                     <label for="register-name" class="form-label">Ваше имя *</label>
@@ -233,5 +236,23 @@ if (isset($_POST['submit_register'])) {
     </div>
 
     <?php include 'includes/footer.php'; ?>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const registerForm = document.querySelector('form[name="submit_register"]') || document.querySelectorAll('form')[1];
+        const loginInput = document.getElementById('register-login');
+        
+        if (loginInput && registerForm) {
+            registerForm.addEventListener('submit', function(e) {
+                const login = loginInput.value.trim();
+                if (/[\u0400-\u04FF]/.test(login)) {
+                    e.preventDefault();
+                    alert('Ошибка: логин не должен содержать кириллические символы. Используйте только латинские буквы, цифры и знак подчёркивания.');
+                    loginInput.focus();
+                }
+            });
+        }
+    });
+    </script>
 </body>
 </html>
