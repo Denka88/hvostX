@@ -7,13 +7,17 @@ if (session_status() === PHP_SESSION_NONE) {
 require_once 'includes/db.php';
 
 $search = $_GET['search'] ?? '';
+$sort = $_GET['sort'] ?? 'name';
 
-// Получаем выбранные теги из GET параметра
+$allowed_sorts = ['name', 'price_asc', 'price_desc', 'popular', 'rating'];
+if (!in_array($sort, $allowed_sorts)) {
+    $sort = 'name';
+}
+
 $selected_tags = isset($_GET['tags']) && is_array($_GET['tags']) ? $_GET['tags'] : [];
 $selected_tags = array_map('intval', $selected_tags);
-$selected_tags = array_filter($selected_tags); // Убираем нули
+$selected_tags = array_filter($selected_tags);
 
-// Строим базовый запрос с учетом поиска
 $base_where = "WHERE p.is_active = 1";
 $params = [];
 $types = "";
@@ -26,9 +30,7 @@ if (!empty($search)) {
     $types .= "ss";
 }
 
-// Получаем товары, соответствующие ВСЕМ выбранным тегам (AND логика)
 if (!empty($selected_tags)) {
-    // Подзапрос: находим товары, у которых есть ВСЕ выбранные теги
     $tag_placeholders = implode(',', array_fill(0, count($selected_tags), '?'));
     $params = array_merge($params, $selected_tags);
     $types .= str_repeat('i', count($selected_tags));
@@ -42,7 +44,6 @@ if (!empty($selected_tags)) {
     )";
 }
 
-// Получаем все товары, соответствующие условиям (для определения доступных тегов)
 $all_products_query = "SELECT DISTINCT p.id FROM products p $base_where";
 $stmt = $connection->prepare($all_products_query);
 if (!empty($params)) {
@@ -55,7 +56,6 @@ while ($row = $result->fetch_assoc()) {
     $matching_product_ids[] = $row['id'];
 }
 
-// Получаем теги, которые есть у найденных товаров
 $tags = [];
 if (!empty($matching_product_ids)) {
     $ids_placeholders = implode(',', array_fill(0, count($matching_product_ids), '?'));
@@ -70,7 +70,6 @@ if (!empty($matching_product_ids)) {
     $tags = $available_stmt->get_result()->fetch_all(MYSQLI_ASSOC);
 }
 
-// Считаем количество товаров для пагинации
 $count_query = "SELECT COUNT(DISTINCT p.id) as total FROM products p $base_where";
 $count_stmt = $connection->prepare($count_query);
 if (!empty($params)) {
@@ -83,14 +82,30 @@ $pagination = new Pagination($total_records, 12);
 $offset = $pagination->getOffset();
 $limit = $pagination->getLimit();
 
-// Получаем товары с пагинацией
+switch ($sort) {
+    case 'price_asc':
+        $order_by = 'p.price ASC';
+        break;
+    case 'price_desc':
+        $order_by = 'p.price DESC';
+        break;
+    case 'popular':
+        $order_by = 'total_sold DESC';
+        break;
+    case 'rating':
+        $order_by = 'avg_rating DESC, review_count DESC';
+        break;
+    default:
+        $order_by = 'p.name';
+}
+
 $query = "SELECT DISTINCT p.*,
           COALESCE((SELECT SUM(oi.quantity) FROM order_items oi WHERE oi.product_id = p.id), 0) as total_sold,
           COALESCE(p.avg_rating, 0) as avg_rating,
           COALESCE(p.review_count, 0) as review_count
           FROM products p
-          $base_where 
-          ORDER BY p.name 
+          $base_where
+          ORDER BY $order_by
           LIMIT $limit OFFSET $offset";
 
 $stmt = $connection->prepare($query);
@@ -101,7 +116,6 @@ $stmt->execute();
 $result = $stmt->get_result();
 $products = mysqli_fetch_all($result, MYSQLI_ASSOC);
 
-// Формируем URL для пагинации
 $base_url = 'products.php';
 $url_params = [];
 if (!empty($search)) $url_params[] = 'search=' . urlencode($search);
@@ -110,6 +124,7 @@ if (!empty($selected_tags)) {
         $url_params[] = 'tags[]=' . $tag_id;
     }
 }
+if ($sort !== 'name') $url_params[] = 'sort=' . urlencode($sort);
 if (!empty($url_params)) $base_url .= '?' . implode('&', $url_params);
 
 $page_title = "Наши товары - HvostX";
@@ -127,13 +142,29 @@ $page_title = "Наши товары - HvostX";
 
     <h1 class="mb-4">Наши товары</h1>
 
-    <?php if (!empty($search)): ?>
-    <div class="alert alert-info mb-4">
-        <i class="fas fa-search me-2"></i>
-        Результаты поиска по запросу: <strong><?php echo htmlspecialchars($search); ?></strong>
-        <a href="products.php" class="btn btn-sm btn-outline-secondary ms-3">Сбросить поиск</a>
+    <div class="row mb-4 align-items-center">
+        <div class="col-md-6">
+            <?php if (!empty($search)): ?>
+            <div class="alert alert-info mb-0">
+                <i class="fas fa-search me-2"></i>
+                Результаты поиска по запросу: <strong><?php echo htmlspecialchars($search); ?></strong>
+                <a href="products.php" class="btn btn-sm btn-outline-secondary ms-3">Сбросить поиск</a>
+            </div>
+            <?php endif; ?>
+        </div>
+        <div class="col-md-6">
+            <div class="d-flex justify-content-md-end align-items-center">
+                <label for="sort-select" class="me-2 text-muted">Сортировка:</label>
+                <select id="sort-select" class="form-select form-select-sm" style="width: auto;">
+                    <option value="name" <?php echo $sort === 'name' ? 'selected' : ''; ?>>По названию</option>
+                    <option value="price_asc" <?php echo $sort === 'price_asc' ? 'selected' : ''; ?>>Сначала дешевые</option>
+                    <option value="price_desc" <?php echo $sort === 'price_desc' ? 'selected' : ''; ?>>Сначала дорогие</option>
+                    <option value="popular" <?php echo $sort === 'popular' ? 'selected' : ''; ?>>По популярности</option>
+                    <option value="rating" <?php echo $sort === 'rating' ? 'selected' : ''; ?>>С высоким рейтингом</option>
+                </select>
+            </div>
+        </div>
     </div>
-    <?php endif; ?>
 
     <?php if (!empty($selected_tags)): ?>
     <div class="alert alert-info mb-4">
@@ -172,13 +203,12 @@ $page_title = "Наши товары - HvostX";
                         <?php foreach ($tags as $tag): ?>
                         <?php
                         $is_selected = in_array($tag['id'], $selected_tags);
-                        // Формируем новый список тегов: если выбран - убираем, если нет - добавляем
                         if ($is_selected) {
                             $new_tags = array_diff($selected_tags, [$tag['id']]);
                         } else {
                             $new_tags = array_merge($selected_tags, [$tag['id']]);
                         }
-                        $new_tags = array_values($new_tags); // переиндексируем
+                        $new_tags = array_values($new_tags);
                         
                         $url_params_for_tag = $_GET;
                         if (!empty($new_tags)) {
@@ -213,7 +243,6 @@ $page_title = "Наши товары - HvostX";
             <div class="row">
                 <?php foreach ($products as $product): ?>
                 <?php
-                // Запрос тегов для каждого товара
                 $product_tags_query = "SELECT t.id, t.name, t.color FROM tags t 
                                        INNER JOIN product_tags pt ON t.id = pt.tag_id 
                                        WHERE pt.product_id = ? 
@@ -242,7 +271,6 @@ $page_title = "Наши товары - HvostX";
                              class="card-img-top" alt="<?php echo htmlspecialchars($product['name']); ?>">
 
                         <div class="card-body">
-                            <!-- Рейтинг товара -->
                             <div class="product-rating mb-2">
                                 <div class="stars-rating-small">
                                     <?php
@@ -266,7 +294,6 @@ $page_title = "Наши товары - HvostX";
                             </p>
                             <?php endif; ?>
 
-                            <!-- Теги товара -->
                             <?php if (!empty($product_tags)): ?>
                             <div class="mb-2">
                                 <?php foreach ($product_tags as $ptag): ?>
@@ -328,6 +355,12 @@ $page_title = "Наши товары - HvostX";
 </style>
 
 <script>
+document.getElementById('sort-select')?.addEventListener('change', function() {
+    const url = new URL(window.location.href);
+    url.searchParams.set('sort', this.value);
+    window.location.href = url.toString();
+});
+
 document.addEventListener('DOMContentLoaded', function() {
     const isLoggedIn = <?php echo isset($_SESSION['user_id']) ? 'true' : 'false'; ?>;
 

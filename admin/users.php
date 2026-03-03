@@ -62,7 +62,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['edit_user'])) {
     $phone = trim($_POST['phone'] ?? '');
     $role = $_POST['role'] ?? 'user';
 
-    // Обработка аватара из кроппера
     $avatar = $_POST['existing_avatar'] ?? '';
     if (!empty($_POST['avatar_data'])) {
         $target_dir = "../assets/images/avatars/";
@@ -74,7 +73,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['edit_user'])) {
         $image_data = $_POST['avatar_data'];
         $image_type = $_POST['avatar_type'] ?? 'png';
         
-        // Удаляем префикс data:image
         if (preg_match('/^data:image\/(\w+);base64,/', $image_data, $type_match)) {
             $image_type = $type_match[1];
             $image_data = substr($image_data, strpos($image_data, ',') + 1);
@@ -87,7 +85,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['edit_user'])) {
             $target_file = $target_dir . $new_filename;
             
             if (file_put_contents($target_file, $image_data)) {
-                // Удаляем старый аватар
                 if (!empty($_POST['existing_avatar']) && file_exists($target_dir . $_POST['existing_avatar'])) {
                     unlink($target_dir . $_POST['existing_avatar']);
                 }
@@ -272,7 +269,6 @@ if ($id > 0) {
                                                 <i class="fas fa-eye"></i>
                                             </button>
                                             <?php 
-                                            // Модераторы могут редактировать только обычных пользователей
                                             $can_edit = ($current_user_role === 'admin') || ($current_user_role === 'moderator' && $user['role'] === 'user');
                                             ?>
                                             <?php if ($can_edit): ?>
@@ -297,7 +293,6 @@ if ($id > 0) {
                                         </td>
                                     </tr>
 
-                                    <!-- Модальное окно просмотра -->
                                     <div class="modal fade" id="viewModal<?php echo $user['id']; ?>" tabindex="-1">
                                         <div class="modal-dialog">
                                             <div class="modal-content">
@@ -330,7 +325,7 @@ if ($id > 0) {
                                                     <p><strong>Дата регистрации:</strong> <?php echo date('d.m.Y H:i', strtotime($user['created_at'])); ?></p>
                                                     <?php if (!empty($user['avatar'])): ?>
                                                     <p><strong>Аватар:</strong><br>
-                                                        <img src="../assets/images/<?php echo htmlspecialchars($user['avatar']); ?>"
+                                                        <img src="../assets/images/avatars/<?php echo htmlspecialchars($user['avatar']); ?>"
                                                              alt="Аватар" class="img-thumbnail" style="max-width: 150px;">
                                                     </p>
                                                     <?php endif; ?>
@@ -342,7 +337,6 @@ if ($id > 0) {
                                         </div>
                                     </div>
 
-                                    <!-- Модальное окно редактирования -->
                                     <div class="modal fade" id="editModal<?php echo $user['id']; ?>" tabindex="-1">
                                         <div class="modal-dialog">
                                             <div class="modal-content">
@@ -417,7 +411,6 @@ if ($id > 0) {
                                         </div>
                                     </div>
 
-                                    <!-- Модальное окно смены пароля -->
                                     <div class="modal fade" id="passwordModal<?php echo $user['id']; ?>" tabindex="-1">
                                         <div class="modal-dialog">
                                             <div class="modal-content">
@@ -535,7 +528,6 @@ if ($id > 0) {
     }
     </style>
 
-    <!-- Модальное окно для кроппера аватара -->
     <div class="modal fade" id="cropModal" tabindex="-1" aria-labelledby="cropModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-xl modal-dialog-centered">
             <div class="modal-content">
@@ -776,13 +768,11 @@ if ($id > 0) {
 
                     avatarDataInput.value = imageData;
 
-                    // Обновляем превью в модальном окне редактирования
                     if (currentUserId) {
                         const previewImg = document.querySelector('#editModal' + currentUserId + ' .avatar-preview-img');
                         if (previewImg && previewImg.tagName === 'IMG') {
                             previewImg.src = imageData;
                         } else if (previewImg) {
-                            // Заменяем заглушку на изображение
                             const newImg = document.createElement('img');
                             newImg.src = imageData;
                             newImg.className = 'rounded-circle mb-2 avatar-preview-img';
@@ -817,7 +807,6 @@ if ($id > 0) {
             });
         }
 
-        // Инициализируем загрузчики для всех пользователей
         <?php foreach ($users as $user): ?>
         initAvatarUploader(<?php echo $user['id']; ?>);
         <?php endforeach; ?>

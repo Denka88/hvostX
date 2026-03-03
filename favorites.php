@@ -66,10 +66,6 @@ $page_title = "Избранное - HvostX";
                      class="card-img-top" alt="<?php echo htmlspecialchars($favorite['name']); ?>">
 
                 <div class="card-body">
-                    <?php if ($favorite['category_name']): ?>
-                    <span class="badge bg-info text-dark mb-2"><?php echo htmlspecialchars($favorite['category_name']); ?></span>
-                    <?php endif; ?>
-
                     <h5 class="card-title mb-2"><?php echo htmlspecialchars($favorite['name']); ?></h5>
                     <p class="card-text text-muted mb-2">
                         <?php echo mb_substr(htmlspecialchars($favorite['description']), 0, 80); ?>...

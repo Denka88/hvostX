@@ -87,6 +87,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $insert_stmt->bind_param("iiis", $user_id, $product_id, $rating, $comment);
 
             if ($insert_stmt->execute()) {
+                // Обновляем рейтинг товара
+                update_product_rating($connection, $product_id);
+                
                 echo json_encode([
                     'status' => 'success',
                     'message' => 'Отзыв добавлен и отправлен на модерацию'
@@ -149,6 +152,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $update_stmt->bind_param("i", $review_id);
 
             if ($update_stmt->execute()) {
+                // Получаем product_id для обновления рейтинга
+                $product_id_query = "SELECT product_id FROM product_reviews WHERE id = ?";
+                $product_id_stmt = $connection->prepare($product_id_query);
+                $product_id_stmt->bind_param("i", $review_id);
+                $product_id_stmt->execute();
+                $review_data = $product_id_stmt->get_result()->fetch_assoc();
+
+                // Обновляем рейтинг товара только если отзыв был одобрен или удалён
+                if ($action === 'approve' && $review_data) {
+                    update_product_rating($connection, $review_data['product_id']);
+                } elseif (in_array($action, ['reject', 'delete']) && $review_data) {
+                    update_product_rating($connection, $review_data['product_id']);
+                }
+
                 echo json_encode([
                     'status' => 'success',
                     'message' => $action === 'approve' ? 'Отзыв одобрен' : 'Отзыв удален'

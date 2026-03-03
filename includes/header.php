@@ -15,7 +15,7 @@ if (session_status() === PHP_SESSION_NONE) {
     <link rel="stylesheet" href="assets/css/style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link rel="stylesheet" href="assets/css/paw-animation.css?v=<?php echo time(); ?>">
-    <script src="https://www.google.com/recaptcha/api.js?render=explicit" async defer></script>
+    <script src="https://www.google.com/recaptcha/api.js?hl=ru" async defer></script>
 </head>
 <body>
     <header class="bg-white shadow-sm">

@@ -85,4 +85,61 @@ if (!class_exists('Pagination')) {
         }
     }
 }
+
+function update_product_rating($connection, $product_id) {
+    $product_id = (int)$product_id;
+
+    if ($product_id <= 0) {
+        return [
+            'status' => 'error',
+            'message' => 'Неверный ID товара'
+        ];
+    }
+
+    $query = "
+        SELECT
+            COALESCE(AVG(rating), 0) AS avg_rating,
+            COUNT(*) AS review_count
+        FROM product_reviews
+        WHERE product_id = ? AND is_approved = TRUE
+    ";
+
+    $stmt = $connection->prepare($query);
+    $stmt->bind_param("i", $product_id);
+    $stmt->execute();
+    $result = $stmt->get_result()->fetch_assoc();
+
+    if (!$result) {
+        return [
+            'status' => 'error',
+            'message' => 'Не удалось получить данные отзывов'
+        ];
+    }
+
+    $avg_rating = round((float)$result['avg_rating'], 2);
+    $review_count = (int)$result['review_count'];
+
+    $update_query = "
+        UPDATE products
+        SET avg_rating = ?,
+            review_count = ?
+        WHERE id = ?
+    ";
+
+    $update_stmt = $connection->prepare($update_query);
+    $update_stmt->bind_param("dii", $avg_rating, $review_count, $product_id);
+
+    if ($update_stmt->execute()) {
+        return [
+            'status' => 'success',
+            'avg_rating' => $avg_rating,
+            'review_count' => $review_count
+        ];
+    }
+
+    return [
+        'status' => 'error',
+        'message' => 'Не удалось обновить рейтинг товара'
+    ];
+}
 ?>

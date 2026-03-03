@@ -36,19 +36,41 @@ if (!empty($_GET) && !isset($_GET['action']) && !isset($_GET['clear_filter'])) {
 }
 
 if ($action === 'approve' && $id > 0) {
+    $product_query = "SELECT product_id FROM product_reviews WHERE id = ?";
+    $product_stmt = $connection->prepare($product_query);
+    $product_stmt->bind_param("i", $id);
+    $product_stmt->execute();
+    $product_data = $product_stmt->get_result()->fetch_assoc();
+    
     $query = "UPDATE product_reviews SET is_approved = TRUE WHERE id = ?";
     $stmt = $connection->prepare($query);
     $stmt->bind_param("i", $id);
     $stmt->execute();
+    
+    if ($product_data) {
+        update_product_rating($connection, $product_data['product_id']);
+    }
+    
     header("Location: reviews.php?approved=1");
     exit;
 }
 
 if ($action === 'delete' && $id > 0) {
+    $product_query = "SELECT product_id FROM product_reviews WHERE id = ?";
+    $product_stmt = $connection->prepare($product_query);
+    $product_stmt->bind_param("i", $id);
+    $product_stmt->execute();
+    $product_data = $product_stmt->get_result()->fetch_assoc();
+    
     $query = "DELETE FROM product_reviews WHERE id = ?";
     $stmt = $connection->prepare($query);
     $stmt->bind_param("i", $id);
     $stmt->execute();
+    
+    if ($product_data) {
+        update_product_rating($connection, $product_data['product_id']);
+    }
+    
     header("Location: reviews.php?deleted=1");
     exit;
 }
@@ -140,7 +162,6 @@ $pending_count = mysqli_fetch_assoc($pending_result)['count'];
 
                 <?php echo $filter->render(); ?>
 
-                <!-- Таблица отзывов -->
                 <div class="card">
                     <div class="card-header d-flex justify-content-between align-items-center">
                         <h5 class="mb-0">Отзывы (<?php echo count($reviews); ?>)</h5>
@@ -180,15 +201,15 @@ $pending_count = mysqli_fetch_assoc($pending_result)['count'];
                                         <td>
                                             <div class="d-flex align-items-center">
                                                 <div class="me-2">
-                                                    <?php if (!empty($review['user_avatar'])): ?>
-                                                        <img src="../assets/images/avatars/<?php echo htmlspecialchars($review['user_avatar']); ?>" 
-                                                             alt="<?php echo htmlspecialchars($review['user_name']); ?>" 
-                                                             class="rounded-circle" 
+                                                    <?php if (!empty($review['user_avatar']) && file_exists('../assets/images/avatars/' . $review['user_avatar'])): ?>
+                                                        <img src="../assets/images/avatars/<?php echo htmlspecialchars($review['user_avatar']); ?>"
+                                                             alt="<?php echo htmlspecialchars($review['user_name']); ?>"
+                                                             class="rounded-circle"
                                                              style="width: 40px; height: 40px; object-fit: cover; border: 2px solid #e9ecef;">
                                                     <?php else: ?>
-                                                        <div class="rounded-circle bg-secondary d-flex align-items-center justify-content-center text-white" 
+                                                        <div class="rounded-circle bg-secondary d-flex align-items-center justify-content-center text-white"
                                                              style="width: 40px; height: 40px; font-size: 0.9rem; font-weight: bold;">
-                                                            <?php echo mb_strtoupper(mb_substr($review['user_name'] ?? 'A', 0, 1)); ?>
+                                                            <?php echo mb_strtoupper(mb_substr($review['user_name'] ?? 'А', 0, 1)); ?>
                                                         </div>
                                                     <?php endif; ?>
                                                 </div>
@@ -212,7 +233,6 @@ $pending_count = mysqli_fetch_assoc($pending_result)['count'];
                                                     <?php echo htmlspecialchars($review['comment']); ?>
                                                 </button>
                                                 
-                                                <!-- Модальное окно с полным отзывом -->
                                                 <div class="modal fade" id="reviewModal<?php echo $review['id']; ?>" tabindex="-1">
                                                     <div class="modal-dialog">
                                                         <div class="modal-content">
@@ -224,14 +244,14 @@ $pending_count = mysqli_fetch_assoc($pending_result)['count'];
                                                                 <div class="d-flex align-items-center mb-3">
                                                                     <div class="me-3">
                                                                         <?php if (!empty($review['user_avatar'])): ?>
-                                                                            <img src="../assets/images/avatars/<?php echo htmlspecialchars($review['user_avatar']); ?>" 
-                                                                                 alt="<?php echo htmlspecialchars($review['user_name']); ?>" 
-                                                                                 class="rounded-circle" 
+                                                                            <img src="../assets/images/avatars/<?php echo htmlspecialchars($review['user_avatar']); ?>"
+                                                                                 alt="<?php echo htmlspecialchars($review['user_name']); ?>"
+                                                                                 class="rounded-circle"
                                                                                  style="width: 60px; height: 60px; object-fit: cover; border: 2px solid #e9ecef;">
                                                                         <?php else: ?>
-                                                                            <div class="rounded-circle bg-secondary d-flex align-items-center justify-content-center text-white" 
+                                                                            <div class="rounded-circle bg-secondary d-flex align-items-center justify-content-center text-white"
                                                                                  style="width: 60px; height: 60px; font-size: 1.5rem; font-weight: bold;">
-                                                                                <?php echo mb_strtoupper(mb_substr($review['user_name'] ?? 'A', 0, 1)); ?>
+                                                                                <?php echo mb_strtoupper(mb_substr($review['user_name'] ?? 'А', 0, 1)); ?>
                                                                             </div>
                                                                         <?php endif; ?>
                                                                     </div>
