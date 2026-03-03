@@ -14,11 +14,9 @@ if (!isset($_SESSION['user_id'])) {
 
 $user_id = $_SESSION['user_id'];
 
-$query = "SELECT f.*, p.name, p.description, p.price, p.image, p.is_active,
-          c.name as category_name
+$query = "SELECT f.*, p.name, p.description, p.price, p.image, p.is_active
           FROM favorites f
           INNER JOIN products p ON f.product_id = p.id
-          LEFT JOIN categories c ON p.category_id = c.id
           WHERE f.user_id = ?
           ORDER BY f.created_at DESC";
 $stmt = $connection->prepare($query);

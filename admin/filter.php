@@ -1,4 +1,5 @@
 <?php
+// /admin/filter.php
 class TableFilter {
     private $connection;
     private $table;

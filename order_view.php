@@ -25,7 +25,7 @@ $stmt->execute();
 $order = $stmt->get_result()->fetch_assoc();
 
 if (!$order) {
-    header("Location: profile.php");
+    header("Location: 404.php");
     exit;
 }
 

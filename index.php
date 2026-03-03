@@ -6,10 +6,9 @@ if (session_status() === PHP_SESSION_NONE) {
 
 require_once 'includes/db.php';
 
-$query = "SELECT p.*, c.name as category_name,
+$query = "SELECT p.*,
           COALESCE((SELECT SUM(oi.quantity) FROM order_items oi WHERE oi.product_id = p.id), 0) as total_sold
           FROM products p
-          LEFT JOIN categories c ON p.category_id = c.id
           WHERE p.is_active = 1
           ORDER BY p.avg_rating DESC, p.review_count DESC, total_sold DESC
           LIMIT 6";
@@ -40,23 +39,43 @@ $page_title = "Главная - HvostX";
     <section class="popular-products mb-5">
         <h2 class="mb-4">Популярные товары</h2>
         <div class="row">
-            <?php while ($product = mysqli_fetch_assoc($result)): ?>
+            <?php 
+            $tags_cache = [];
+            $tags_all_query = "SELECT * FROM tags WHERE is_active = 1";
+            $tags_all_result = mysqli_query($connection, $tags_all_query);
+            while ($t = mysqli_fetch_assoc($tags_all_result)) {
+                $tags_cache[$t['id']] = $t;
+            }
+            
+            while ($product = mysqli_fetch_assoc($result)): 
+            $first_tag = null;
+            $product_tags_query = "SELECT t.id, t.name, t.color FROM tags t 
+                                   INNER JOIN product_tags pt ON t.id = pt.tag_id 
+                                   WHERE pt.product_id = " . (int)$product['id'] . " 
+                                   ORDER BY pt.created_at LIMIT 1";
+            $product_tags_result = mysqli_query($connection, $product_tags_query);
+            if ($product_tags_result && mysqli_num_rows($product_tags_result) > 0) {
+                $first_tag = mysqli_fetch_assoc($product_tags_result);
+            }
+            ?>
             <div class="col-md-4 mb-4">
                 <div class="card h-100 product-card">
                     <?php if ($product['is_active']): ?>
-                    <span class="badge bg-success position-absolute" style="top: 10px; right: 10px;">В наличии</span>
+                    <span class="badge bg-success position-absolute" style="top: 10px; right: 10px; z-index: 10;">В наличии</span>
                     <?php else: ?>
-                    <span class="badge bg-secondary position-absolute" style="top: 10px; right: 10px;">Нет в наличии</span>
+                    <span class="badge bg-secondary position-absolute" style="top: 10px; right: 10px; z-index: 10;">Нет в наличии</span>
+                    <?php endif; ?>
+
+                    <?php if ($first_tag): ?>
+                    <span class="badge position-absolute" style="top: 10px; left: 10px; z-index: 10; background-color: <?php echo htmlspecialchars($first_tag['color']); ?>;">
+                        <?php echo htmlspecialchars($first_tag['name']); ?>
+                    </span>
                     <?php endif; ?>
 
                     <img src="assets/images/products/<?php echo htmlspecialchars($product['image']); ?>" class="card-img-top" alt="<?php echo htmlspecialchars($product['name']); ?>">
 
                     <div class="card-body">
-                        <?php if ($product['category_name']): ?>
-                        <span class="badge bg-info text-dark mb-2"><?php echo htmlspecialchars($product['category_name']); ?></span>
-                        <?php endif; ?>
 
-                        <!-- Рейтинг товара -->
                         <div class="product-rating mb-2">
                             <div class="stars-rating-small">
                                 <?php

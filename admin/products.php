@@ -17,17 +17,8 @@ if (isset($_GET['clear_filter'])) {
     exit;
 }
 
-$categories_query = "SELECT * FROM categories WHERE is_active = 1";
-$categories_result = mysqli_query($connection, $categories_query);
-$categories_list = mysqli_fetch_all($categories_result, MYSQLI_ASSOC);
-$category_options = [];
-foreach ($categories_list as $cat) {
-    $category_options[$cat['id']] = $cat['name'];
-}
-
 $filter = new TableFilter($connection, 'products', 'p');
 $filter->addField('name', 'text', 'Название')
-       ->addField('category_id', 'select', 'Категория', $category_options)
        ->addField('is_active', 'select', 'Статус', [
            '1' => 'Активен',
            '0' => 'Неактивен'
@@ -57,7 +48,7 @@ $limit = $pagination->getLimit();
 
 list($where, $params, $types) = $filter->getSQL();
 
-$query = "SELECT p.*, c.name as category_name FROM products p LEFT JOIN categories c ON p.category_id = c.id $where ORDER BY p.created_at DESC LIMIT $limit OFFSET $offset";
+$query = "SELECT p.* FROM products p $where ORDER BY p.created_at DESC LIMIT $limit OFFSET $offset";
 if (!empty($params)) {
     $stmt = $connection->prepare($query);
     if (!empty($types)) {
@@ -111,7 +102,6 @@ if (!empty($params)) {
                                     <tr>
                                         <th>ID</th>
                                         <th>Название</th>
-                                        <th>Категория</th>
                                         <th>Цена</th>
                                         <th>Активен</th>
                                         <th>Действия</th>
@@ -122,7 +112,6 @@ if (!empty($params)) {
                                     <tr>
                                         <td><?php echo $product['id']; ?></td>
                                         <td><?php echo htmlspecialchars($product['name']); ?></td>
-                                        <td><?php echo htmlspecialchars($product['category_name'] ?? 'Без категории'); ?></td>
                                         <td><?php echo number_format($product['price'], 0, '.', ' '); ?> ₽</td>
                                         <td>
                                             <span class="badge <?php echo $product['is_active'] ? 'bg-success' : 'bg-secondary'; ?>">

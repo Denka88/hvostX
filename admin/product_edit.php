@@ -11,8 +11,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $name = $_POST['name'] ?? '';
     $description = $_POST['description'] ?? '';
     $price = $_POST['price'] ?? 0;
-    $category_id = $_POST['category_id'] ?? null;
     $is_active = isset($_POST['is_active']) ? 1 : 0;
+    $tag_ids = $_POST['tag_ids'] ?? [];
 
     $image = $_POST['existing_image'] ?? '';
     if (!empty($_FILES['image']['name'])) {
@@ -41,16 +41,47 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     if ($id > 0) {
-        $query = "UPDATE products SET name = ?, description = ?, price = ?, category_id = ?, image = ?, is_active = ? WHERE id = ?";
+        $query = "UPDATE products SET name = ?, description = ?, price = ?, image = ?, is_active = ? WHERE id = ?";
         $stmt = $connection->prepare($query);
-        $stmt->bind_param("ssdissi", $name, $description, $price, $category_id, $image, $is_active, $id);
-    } else {
-        $query = "INSERT INTO products (name, description, price, category_id, image, is_active) VALUES (?, ?, ?, ?, ?, ?)";
-        $stmt = $connection->prepare($query);
-        $stmt->bind_param("ssdiss", $name, $description, $price, $category_id, $image, $is_active);
-    }
+        $stmt->bind_param("ssdiss", $name, $description, $price, $image, $is_active, $id);
+        $stmt->execute();
 
-    $stmt->execute();
+        $delete_tags_query = "DELETE FROM product_tags WHERE product_id = ?";
+        $delete_stmt = $connection->prepare($delete_tags_query);
+        $delete_stmt->bind_param("i", $id);
+        $delete_stmt->execute();
+        
+        if (!empty($tag_ids)) {
+            $insert_tag_query = "INSERT INTO product_tags (product_id, tag_id) VALUES (?, ?)";
+            $insert_stmt = $connection->prepare($insert_tag_query);
+            foreach ($tag_ids as $tag_id) {
+                $tag_id = (int)$tag_id;
+                if ($tag_id > 0) {
+                    $insert_stmt->bind_param("ii", $id, $tag_id);
+                    $insert_stmt->execute();
+                }
+            }
+        }
+    } else {
+        $query = "INSERT INTO products (name, description, price, image, is_active) VALUES (?, ?, ?, ?, ?)";
+        $stmt = $connection->prepare($query);
+        $stmt->bind_param("ssdss", $name, $description, $price, $image, $is_active);
+        $stmt->execute();
+        $id = $connection->insert_id;
+
+        if (!empty($tag_ids)) {
+            $insert_tag_query = "INSERT INTO product_tags (product_id, tag_id) VALUES (?, ?)";
+            $insert_stmt = $connection->prepare($insert_tag_query);
+            foreach ($tag_ids as $tag_id) {
+                $tag_id = (int)$tag_id;
+                if ($tag_id > 0) {
+                    $insert_stmt->bind_param("ii", $id, $tag_id);
+                    $insert_stmt->execute();
+                }
+            }
+        }
+    }
+    
     header("Location: products.php");
     exit;
 }
@@ -63,11 +94,26 @@ if ($id > 0) {
     $stmt->bind_param("i", $id);
     $stmt->execute();
     $product = $stmt->get_result()->fetch_assoc();
+
+    if (!$product) {
+        header("Location: products.php");
+        exit;
+    }
+
+    $product_tags_query = "SELECT tag_id FROM product_tags WHERE product_id = ?";
+    $product_tags_stmt = $connection->prepare($product_tags_query);
+    $product_tags_stmt->bind_param("i", $id);
+    $product_tags_stmt->execute();
+    $result = $product_tags_stmt->get_result();
+    $product_tags = [];
+    while ($row = $result->fetch_assoc()) {
+        $product_tags[] = $row['tag_id'];
+    }
 }
 
-$categories_query = "SELECT * FROM categories";
-$categories_result = mysqli_query($connection, $categories_query);
-$categories = mysqli_fetch_all($categories_result, MYSQLI_ASSOC);
+$tags_query = "SELECT * FROM tags WHERE is_active = 1 ORDER BY name";
+$tags_result = mysqli_query($connection, $tags_query);
+$tags = mysqli_fetch_all($tags_result, MYSQLI_ASSOC);
 ?>
 
 <!DOCTYPE html>
@@ -120,16 +166,28 @@ $categories = mysqli_fetch_all($categories_result, MYSQLI_ASSOC);
                             </div>
 
                             <div class="mb-3">
-                                <label for="category_id" class="form-label">Категория</label>
-                                <select class="form-select" id="category_id" name="category_id">
-                                    <option value="">Без категории</option>
-                                    <?php foreach ($categories as $category): ?>
-                                    <option value="<?php echo $category['id']; ?>"
-                                            <?php echo (isset($product['category_id']) && $product['category_id'] == $category['id']) ? 'selected' : ''; ?>>
-                                        <?php echo htmlspecialchars($category['name']); ?>
-                                    </option>
-                                    <?php endforeach; ?>
-                                </select>
+                                <label class="form-label">Теги</label>
+                                <div class="border rounded p-3" style="max-height: 200px; overflow-y: auto;">
+                                    <?php if (empty($tags)): ?>
+                                    <p class="text-muted mb-0">Теги не созданы. <a href="tags.php" target="_blank">Создать теги</a></p>
+                                    <?php else: ?>
+                                    <div class="d-flex flex-wrap gap-2">
+                                        <?php foreach ($tags as $tag): ?>
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" name="tag_ids[]" 
+                                                   value="<?php echo $tag['id']; ?>" id="tag_<?php echo $tag['id']; ?>"
+                                                   <?php echo (isset($product_tags) && in_array($tag['id'], $product_tags)) ? 'checked' : ''; ?>>
+                                            <label class="form-check-label" for="tag_<?php echo $tag['id']; ?>">
+                                                <span class="badge" style="background-color: <?php echo htmlspecialchars($tag['color']); ?>;">
+                                                    <?php echo htmlspecialchars($tag['name']); ?>
+                                                </span>
+                                            </label>
+                                        </div>
+                                        <?php endforeach; ?>
+                                    </div>
+                                    <?php endif; ?>
+                                </div>
+                                <small class="text-muted">Выберите один или несколько тегов для товара</small>
                             </div>
 
                             <div class="mb-3">

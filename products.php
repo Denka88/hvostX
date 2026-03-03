@@ -6,59 +6,111 @@ if (session_status() === PHP_SESSION_NONE) {
 
 require_once 'includes/db.php';
 
-$category_id = $_GET['category'] ?? 0;
-
 $search = $_GET['search'] ?? '';
 
-$categories_query = "SELECT * FROM categories WHERE is_active = 1";
-$categories_result = mysqli_query($connection, $categories_query);
-$categories = mysqli_fetch_all($categories_result, MYSQLI_ASSOC);
+// Получаем выбранные теги из GET параметра
+$selected_tags = isset($_GET['tags']) && is_array($_GET['tags']) ? $_GET['tags'] : [];
+$selected_tags = array_map('intval', $selected_tags);
+$selected_tags = array_filter($selected_tags); // Убираем нули
 
-$base_query = "SELECT p.*, c.name as category_name,
-          COALESCE((SELECT SUM(oi.quantity) FROM order_items oi WHERE oi.product_id = p.id), 0) as total_sold,
-          COALESCE(p.avg_rating, 0) as avg_rating,
-          COALESCE(p.review_count, 0) as review_count
-          FROM products p
-          LEFT JOIN categories c ON p.category_id = c.id
-          WHERE p.is_active = 1";
-
-$where = "";
-if ($category_id > 0) {
-    $where .= " AND p.category_id = " . intval($category_id);
-}
+// Строим базовый запрос с учетом поиска
+$base_where = "WHERE p.is_active = 1";
+$params = [];
+$types = "";
 
 if (!empty($search)) {
     $search_escaped = mysqli_real_escape_string($connection, $search);
-    $where .= " AND (p.name LIKE '%$search_escaped%' OR p.description LIKE '%$search_escaped%')";
+    $base_where .= " AND (p.name LIKE ? OR p.description LIKE ?)";
+    $params[] = "%$search_escaped%";
+    $params[] = "%$search_escaped%";
+    $types .= "ss";
 }
 
-$count_query = "SELECT COUNT(*) as total FROM products p WHERE p.is_active = 1" . $where;
-$count_result = mysqli_query($connection, $count_query);
-$total_records = mysqli_fetch_assoc($count_result)['total'];
+// Получаем товары, соответствующие ВСЕМ выбранным тегам (AND логика)
+if (!empty($selected_tags)) {
+    // Подзапрос: находим товары, у которых есть ВСЕ выбранные теги
+    $tag_placeholders = implode(',', array_fill(0, count($selected_tags), '?'));
+    $params = array_merge($params, $selected_tags);
+    $types .= str_repeat('i', count($selected_tags));
+    
+    $base_where .= " AND p.id IN (
+        SELECT pt.product_id 
+        FROM product_tags pt 
+        WHERE pt.tag_id IN ($tag_placeholders)
+        GROUP BY pt.product_id
+        HAVING COUNT(DISTINCT pt.tag_id) = " . count($selected_tags) . "
+    )";
+}
+
+// Получаем все товары, соответствующие условиям (для определения доступных тегов)
+$all_products_query = "SELECT DISTINCT p.id FROM products p $base_where";
+$stmt = $connection->prepare($all_products_query);
+if (!empty($params)) {
+    $stmt->bind_param($types, ...$params);
+}
+$stmt->execute();
+$result = $stmt->get_result();
+$matching_product_ids = [];
+while ($row = $result->fetch_assoc()) {
+    $matching_product_ids[] = $row['id'];
+}
+
+// Получаем теги, которые есть у найденных товаров
+$tags = [];
+if (!empty($matching_product_ids)) {
+    $ids_placeholders = implode(',', array_fill(0, count($matching_product_ids), '?'));
+    $available_tags_query = "SELECT DISTINCT t.* FROM tags t 
+                             INNER JOIN product_tags pt ON t.id = pt.tag_id 
+                             WHERE pt.product_id IN ($ids_placeholders) 
+                             AND t.is_active = 1
+                             ORDER BY t.name";
+    $available_stmt = $connection->prepare($available_tags_query);
+    $available_stmt->bind_param(str_repeat('i', count($matching_product_ids)), ...$matching_product_ids);
+    $available_stmt->execute();
+    $tags = $available_stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+}
+
+// Считаем количество товаров для пагинации
+$count_query = "SELECT COUNT(DISTINCT p.id) as total FROM products p $base_where";
+$count_stmt = $connection->prepare($count_query);
+if (!empty($params)) {
+    $count_stmt->bind_param($types, ...$params);
+}
+$count_stmt->execute();
+$total_records = $count_stmt->get_result()->fetch_assoc()['total'];
 
 $pagination = new Pagination($total_records, 12);
 $offset = $pagination->getOffset();
 $limit = $pagination->getLimit();
 
-$query = $base_query . $where . " ORDER BY p.name LIMIT $limit OFFSET $offset";
-$result = mysqli_query($connection, $query);
+// Получаем товары с пагинацией
+$query = "SELECT DISTINCT p.*,
+          COALESCE((SELECT SUM(oi.quantity) FROM order_items oi WHERE oi.product_id = p.id), 0) as total_sold,
+          COALESCE(p.avg_rating, 0) as avg_rating,
+          COALESCE(p.review_count, 0) as review_count
+          FROM products p
+          $base_where 
+          ORDER BY p.name 
+          LIMIT $limit OFFSET $offset";
+
+$stmt = $connection->prepare($query);
+if (!empty($params)) {
+    $stmt->bind_param($types, ...$params);
+}
+$stmt->execute();
+$result = $stmt->get_result();
 $products = mysqli_fetch_all($result, MYSQLI_ASSOC);
 
+// Формируем URL для пагинации
 $base_url = 'products.php';
-$params = [];
-if ($category_id > 0) $params[] = 'category=' . $category_id;
-if (!empty($search)) $params[] = 'search=' . urlencode($search);
-if (!empty($params)) $base_url .= '?' . implode('&', $params);
-
-$current_category = null;
-if ($category_id > 0) {
-    foreach ($categories as $cat) {
-        if ($cat['id'] == $category_id) {
-            $current_category = $cat;
-            break;
-        }
+$url_params = [];
+if (!empty($search)) $url_params[] = 'search=' . urlencode($search);
+if (!empty($selected_tags)) {
+    foreach ($selected_tags as $tag_id) {
+        $url_params[] = 'tags[]=' . $tag_id;
     }
 }
+if (!empty($url_params)) $base_url .= '?' . implode('&', $url_params);
 
 $page_title = "Наши товары - HvostX";
 ?>
@@ -83,11 +135,22 @@ $page_title = "Наши товары - HvostX";
     </div>
     <?php endif; ?>
 
-    <?php if ($current_category): ?>
+    <?php if (!empty($selected_tags)): ?>
     <div class="alert alert-info mb-4">
-        <i class="fas fa-filter me-2"></i>
-        Показаны товары из категории: <strong><?php echo htmlspecialchars($current_category['name']); ?></strong>
-        <a href="products.php" class="btn btn-sm btn-outline-secondary ms-3">Сбросить фильтр</a>
+        <i class="fas fa-tags me-2"></i>
+        Выбранные теги (товары должны иметь все выбранные теги):
+        <?php
+        $tag_names = [];
+        foreach ($selected_tags as $tag_id) {
+            foreach ($tags as $tag) {
+                if ($tag['id'] == $tag_id) {
+                    $tag_names[] = '<span class="badge ms-1" style="background-color: ' . htmlspecialchars($tag['color']) . ';">' . htmlspecialchars($tag['name']) . '</span>';
+                }
+            }
+        }
+        echo implode(' ', $tag_names);
+        ?>
+        <a href="products.php?<?php echo http_build_query(array_filter($_GET, function($k) { return $k !== 'tags'; }, ARRAY_FILTER_USE_KEY)); ?>" class="btn btn-sm btn-outline-secondary ms-3">Сбросить теги</a>
     </div>
     <?php endif; ?>
 
@@ -98,22 +161,44 @@ $page_title = "Наши товары - HvostX";
                     <h5 class="mb-0"><i class="fas fa-filter me-2"></i>Фильтрация</h5>
                 </div>
                 <div class="card-body">
-                    <h6 class="mb-3">Категории</h6>
-                    <ul class="list-unstyled mb-0">
-                        <li class="mb-2">
-                            <a href="products.php" class="<?php echo !$category_id ? 'active' : ''; ?>">
-                                Все товары
-                            </a>
-                        </li>
-                        <?php foreach ($categories as $category): ?>
-                        <li class="mb-2">
-                            <a href="products.php?category=<?php echo $category['id']; ?>"
-                               class="<?php echo $category_id == $category['id'] ? 'active' : ''; ?>">
-                                <?php echo htmlspecialchars($category['name']); ?>
-                            </a>
-                        </li>
+                    <h6 class="mb-3">
+                        Теги
+                        <small class="text-muted d-block" style="font-size: 0.75rem;">(нажмите, чтобы добавить/удалить)</small>
+                    </h6>
+                    <div class="d-flex flex-wrap gap-2">
+                        <?php if (empty($tags)): ?>
+                        <p class="text-muted small">Нет доступных тегов для текущих условий</p>
+                        <?php else: ?>
+                        <?php foreach ($tags as $tag): ?>
+                        <?php
+                        $is_selected = in_array($tag['id'], $selected_tags);
+                        // Формируем новый список тегов: если выбран - убираем, если нет - добавляем
+                        if ($is_selected) {
+                            $new_tags = array_diff($selected_tags, [$tag['id']]);
+                        } else {
+                            $new_tags = array_merge($selected_tags, [$tag['id']]);
+                        }
+                        $new_tags = array_values($new_tags); // переиндексируем
+                        
+                        $url_params_for_tag = $_GET;
+                        if (!empty($new_tags)) {
+                            $url_params_for_tag['tags'] = $new_tags;
+                        } else {
+                            unset($url_params_for_tag['tags']);
+                        }
+                        $new_url = 'products.php?' . http_build_query($url_params_for_tag);
+                        ?>
+                        <a href="<?php echo $new_url; ?>" 
+                           class="badge text-decoration-none tag-filter <?php echo $is_selected ? 'selected' : ''; ?>"
+                           style="background-color: <?php echo htmlspecialchars($tag['color']); ?>; color: #fff; padding: 0.5em 0.8em; border-radius: 20px; transition: all 0.2s; cursor: pointer;">
+                            <?php echo htmlspecialchars($tag['name']); ?>
+                            <?php if ($is_selected): ?>
+                            <i class="fas fa-times ms-1"></i>
+                            <?php endif; ?>
+                        </a>
                         <?php endforeach; ?>
-                    </ul>
+                        <?php endif; ?>
+                    </div>
                 </div>
             </div>
         </div>
@@ -122,27 +207,41 @@ $page_title = "Наши товары - HvostX";
             <?php if (empty($products)): ?>
             <div class="alert alert-warning">
                 <i class="fas fa-exclamation-triangle me-2"></i>
-                В этой категории нет товаров.
+                Товары не найдены.
             </div>
             <?php else: ?>
             <div class="row">
                 <?php foreach ($products as $product): ?>
+                <?php
+                // Запрос тегов для каждого товара
+                $product_tags_query = "SELECT t.id, t.name, t.color FROM tags t 
+                                       INNER JOIN product_tags pt ON t.id = pt.tag_id 
+                                       WHERE pt.product_id = ? 
+                                       ORDER BY pt.created_at";
+                $product_tags_stmt = $connection->prepare($product_tags_query);
+                $product_tags_stmt->bind_param("i", $product['id']);
+                $product_tags_stmt->execute();
+                $product_tags = $product_tags_stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+                $first_tag = $product_tags[0] ?? null;
+                ?>
                 <div class="col-md-4 col-sm-6 mb-4">
                     <div class="card h-100 product-card">
                         <?php if ($product['is_active']): ?>
-                        <span class="badge bg-success position-absolute" style="top: 10px; right: 10px;">В наличии</span>
+                        <span class="badge bg-success position-absolute" style="top: 10px; right: 10px; z-index: 10;">В наличии</span>
                         <?php else: ?>
-                        <span class="badge bg-secondary position-absolute" style="top: 10px; right: 10px;">Нет в наличии</span>
+                        <span class="badge bg-secondary position-absolute" style="top: 10px; right: 10px; z-index: 10;">Нет в наличии</span>
+                        <?php endif; ?>
+
+                        <?php if ($first_tag): ?>
+                        <span class="badge position-absolute" style="top: 10px; left: 10px; z-index: 10; background-color: <?php echo htmlspecialchars($first_tag['color']); ?>;">
+                            <?php echo htmlspecialchars($first_tag['name']); ?>
+                        </span>
                         <?php endif; ?>
 
                         <img src="assets/images/products/<?php echo htmlspecialchars($product['image']); ?>"
                              class="card-img-top" alt="<?php echo htmlspecialchars($product['name']); ?>">
 
                         <div class="card-body">
-                            <?php if ($product['category_name']): ?>
-                            <span class="badge bg-info text-dark mb-2"><?php echo htmlspecialchars($product['category_name']); ?></span>
-                            <?php endif; ?>
-
                             <!-- Рейтинг товара -->
                             <div class="product-rating mb-2">
                                 <div class="stars-rating-small">
@@ -167,6 +266,17 @@ $page_title = "Наши товары - HvostX";
                             </p>
                             <?php endif; ?>
 
+                            <!-- Теги товара -->
+                            <?php if (!empty($product_tags)): ?>
+                            <div class="mb-2">
+                                <?php foreach ($product_tags as $ptag): ?>
+                                <span class="badge me-1 mb-1" style="background-color: <?php echo htmlspecialchars($ptag['color']); ?>; font-size: 0.75rem;">
+                                    <?php echo htmlspecialchars($ptag['name']); ?>
+                                </span>
+                                <?php endforeach; ?>
+                            </div>
+                            <?php endif; ?>
+
                             <div class="d-grid gap-2">
                                 <a href="product_single.php?id=<?php echo $product['id']; ?>"
                                    class="btn btn-primary btn-sm">
@@ -184,12 +294,38 @@ $page_title = "Наши товары - HvostX";
                 </div>
                 <?php endforeach; ?>
             </div>
-            
+
             <?php echo $pagination->render($base_url); ?>
             <?php endif; ?>
         </div>
     </div>
 </div>
+
+<style>
+.tag-filter:hover {
+    opacity: 0.8;
+    transform: scale(1.05);
+}
+.tag-filter.selected {
+    box-shadow: 0 0 0 3px rgba(0,0,0,0.3);
+    position: relative;
+}
+.tag-filter.selected::after {
+    content: '✓';
+    position: absolute;
+    top: -5px;
+    right: -5px;
+    background: #fff;
+    color: #000;
+    border-radius: 50%;
+    width: 18px;
+    height: 18px;
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+</style>
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {

@@ -8,8 +8,7 @@ require_once 'includes/db.php';
 
 $product_id = $_GET['id'] ?? 0;
 
-$query = "SELECT p.*, c.name as category_name FROM products p
-          LEFT JOIN categories c ON p.category_id = c.id
+$query = "SELECT p.* FROM products p
           WHERE p.id = ? AND p.is_active = 1";
 $stmt = $connection->prepare($query);
 $stmt->bind_param("i", $product_id);
@@ -17,7 +16,7 @@ $stmt->execute();
 $product = $stmt->get_result()->fetch_assoc();
 
 if (!$product) {
-    header("Location: products.php");
+    header("Location: 404.php");
     exit;
 }
 
@@ -55,9 +54,27 @@ if (isset($_SESSION['user_id'])) {
     $user_has_review = (bool)$check_review_stmt->get_result()->fetch_assoc();
 }
 
-$related_query = "SELECT * FROM products WHERE category_id = ? AND id != ? AND is_active = 1 LIMIT 4";
+// Получаем теги товара
+$tags_query = "SELECT t.* FROM tags t 
+               INNER JOIN product_tags pt ON t.id = pt.tag_id 
+               WHERE pt.product_id = ? 
+               ORDER BY pt.created_at";
+$tags_stmt = $connection->prepare($tags_query);
+$tags_stmt->bind_param("i", $product_id);
+$tags_stmt->execute();
+$product_tags = $tags_stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+
+// Получаем похожие товары по общим тегам
+$related_query = "SELECT DISTINCT p.* FROM products p
+                  INNER JOIN product_tags pt ON p.id = pt.product_id
+                  WHERE pt.tag_id IN (
+                      SELECT tag_id FROM product_tags WHERE product_id = ?
+                  )
+                  AND p.id != ? 
+                  AND p.is_active = 1 
+                  LIMIT 4";
 $related_stmt = $connection->prepare($related_query);
-$related_stmt->bind_param("ii", $product['category_id'], $product_id);
+$related_stmt->bind_param("ii", $product_id, $product_id);
 $related_stmt->execute();
 $related_products = $related_stmt->get_result()->fetch_all(MYSQLI_ASSOC);
 
@@ -89,10 +106,19 @@ $page_title = $product['name'] . " - HvostX";
 
             <div class="d-flex align-items-center mb-3">
                 <span class="badge bg-success me-2">В наличии</span>
-                <?php if ($product['category_name']): ?>
-                <span class="text-muted">Категория: <?php echo htmlspecialchars($product['category_name']); ?></span>
-                <?php endif; ?>
             </div>
+
+            <?php if (!empty($product_tags)): ?>
+            <div class="mb-3">
+                <?php foreach ($product_tags as $tag): ?>
+                <a href="products.php?tags[]=<?php echo $tag['id']; ?>" 
+                   class="badge text-decoration-none me-2 mb-1" 
+                   style="background-color: <?php echo htmlspecialchars($tag['color']); ?>; font-size: 0.85rem;">
+                    <?php echo htmlspecialchars($tag['name']); ?>
+                </a>
+                <?php endforeach; ?>
+            </div>
+            <?php endif; ?>
 
             <!-- Рейтинг товара -->
             <div class="product-rating mb-3">
@@ -144,9 +170,22 @@ $page_title = $product['name'] . " - HvostX";
             <div class="product-meta">
                 <h5>Характеристики</h5>
                 <ul class="list-unstyled">
-                    <li><strong>Категория:</strong> <?php echo htmlspecialchars($product['category_name'] ?? 'Не указано'); ?></li>
                     <li><strong>Артикул:</strong> HV-<?php echo str_pad($product['id'], 5, '0', STR_PAD_LEFT); ?></li>
                     <li><strong>Страна:</strong> Россия</li>
+                    <?php if (!empty($product_tags)): ?>
+                    <li>
+                        <strong>Теги:</strong>
+                        <div class="mt-1">
+                            <?php foreach ($product_tags as $tag): ?>
+                            <a href="products.php?tags[]=<?php echo $tag['id']; ?>" 
+                               class="badge text-decoration-none me-1 mb-1" 
+                               style="background-color: <?php echo htmlspecialchars($tag['color']); ?>;">
+                                <?php echo htmlspecialchars($tag['name']); ?>
+                            </a>
+                            <?php endforeach; ?>
+                        </div>
+                    </li>
+                    <?php endif; ?>
                 </ul>
             </div>
         </div>

@@ -1,0 +1,14 @@
+# Включить перезапись URL
+RewriteEngine On
+
+# Базовый путь
+RewriteBase /admin/
+
+# Перенаправление на 404 для несуществующих файлов и директорий
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteCond %{REQUEST_URI} !^/admin/404\.php
+RewriteRule ^(.*)$ /admin/404.php [L]
+
+# Защита директорий
+Options -Indexes

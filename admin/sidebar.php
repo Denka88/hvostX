@@ -1,4 +1,6 @@
-<!-- /admin/sidebar.php -->
+<?php
+// /admin/sidebar.php
+?>
 
 <div class="sidebar-menu">
     <a href="index.php" class="sidebar-item <?php echo basename($_SERVER['PHP_SELF']) === 'index.php' ? 'active' : ''; ?>">
@@ -9,9 +11,13 @@
         <i class="fas fa-box"></i>
         <span class="sidebar-text">Товары</span>
     </a>
-    <a href="categories.php" class="sidebar-item <?php echo basename($_SERVER['PHP_SELF']) === 'categories.php' ? 'active' : ''; ?>">
-        <i class="fas fa-list"></i>
-        <span class="sidebar-text">Категории</span>
+    <a href="tags.php" class="sidebar-item <?php echo basename($_SERVER['PHP_SELF']) === 'tags.php' ? 'active' : ''; ?>">
+        <i class="fas fa-tags"></i>
+        <span class="sidebar-text">Теги</span>
+    </a>
+    <a href="redirects.php" class="sidebar-item <?php echo basename($_SERVER['PHP_SELF']) === 'redirects.php' ? 'active' : ''; ?>">
+        <i class="fas fa-exchange-alt"></i>
+        <span class="sidebar-text">Редиректы</span>
     </a>
     <a href="orders.php" class="sidebar-item <?php echo basename($_SERVER['PHP_SELF']) === 'orders.php' ? 'active' : ''; ?>">
         <i class="fas fa-shopping-cart"></i>

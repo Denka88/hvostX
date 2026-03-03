@@ -6,56 +6,47 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-/**
- * Обновляет рейтинг товара на основе отзывов
- *
- * @param mysqli $connection Подключение к БД
- * @param int $product_id ID товара
- * @return array Массив со статусом и данными рейтинга
- */
 function update_product_rating($connection, $product_id)
 {
     $product_id = (int)$product_id;
-    
+
     if ($product_id <= 0) {
         return [
             'status' => 'error',
             'message' => 'Неверный ID товара'
         ];
     }
-    
-    // Получаем средний рейтинг и количество отзывов
+
     $query = "
-        SELECT 
-            COALESCE(AVG(rating), 0) AS avg_rating, 
+        SELECT
+            COALESCE(AVG(rating), 0) AS avg_rating,
             COUNT(*) AS review_count
         FROM product_reviews
         WHERE product_id = ? AND is_approved = TRUE
     ";
-    
+
     $stmt = $connection->prepare($query);
     $stmt->bind_param("i", $product_id);
     $stmt->execute();
     $result = $stmt->get_result()->fetch_assoc();
-    
+
     if (!$result) {
         return [
             'status' => 'error',
             'message' => 'Не удалось получить данные отзывов'
         ];
     }
-    
+
     $avg_rating = round((float)$result['avg_rating'], 2);
     $review_count = (int)$result['review_count'];
-    
-    // Обновляем товар
+
     $update_query = "
-        UPDATE products 
-        SET avg_rating = ?, 
-            review_count = ? 
+        UPDATE products
+        SET avg_rating = ?,
+            review_count = ?
         WHERE id = ?
     ";
-    
+
     $update_stmt = $connection->prepare($update_query);
     $update_stmt->bind_param("dii", $avg_rating, $review_count, $product_id);
     

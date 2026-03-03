@@ -184,27 +184,29 @@ if (empty($products_labels)) {
     $products_values = [0];
 }
 
-$categories_query = "SELECT
-                     c.name,
-                     COUNT(p.id) as products_count
-                     FROM categories c
-                     LEFT JOIN products p ON c.id = p.category_id AND p.is_active = 1
-                     GROUP BY c.id, c.name
-                     ORDER BY products_count DESC";
-$categories_result = mysqli_query($connection, $categories_query);
-$categories_labels = [];
-$categories_values = [];
+$tags_query = "SELECT
+               t.name,
+               COUNT(pt.product_id) as products_count
+               FROM tags t
+               LEFT JOIN product_tags pt ON t.id = pt.tag_id
+               LEFT JOIN products p ON pt.product_id = p.id AND p.is_active = 1
+               GROUP BY t.id, t.name
+               ORDER BY products_count DESC
+               LIMIT 10";
+$tags_result = mysqli_query($connection, $tags_query);
+$tags_labels = [];
+$tags_values = [];
 
-if ($categories_result) {
-    while ($row = mysqli_fetch_assoc($categories_result)) {
-        $categories_labels[] = $row['name'];
-        $categories_values[] = (int)$row['products_count'];
+if ($tags_result) {
+    while ($row = mysqli_fetch_assoc($tags_result)) {
+        $tags_labels[] = $row['name'];
+        $tags_values[] = (int)$row['products_count'];
     }
 }
 
-if (empty($categories_labels)) {
-    $categories_labels = ['Нет данных'];
-    $categories_values = [0];
+if (empty($tags_labels)) {
+    $tags_labels = ['Нет данных'];
+    $tags_values = [0];
 }
 ?>
 
@@ -350,10 +352,10 @@ if (empty($categories_labels)) {
                         <div class="card h-100">
                             <div class="card-header">
                                 <i class="fas fa-chart-pie me-1"></i>
-                                Товары по категориям
+                                Товары по тегам
                             </div>
                             <div class="card-body">
-                                <canvas id="categoriesChart" width="100%" height="100"></canvas>
+                                <canvas id="tagsChart" width="100%" height="100"></canvas>
                             </div>
                         </div>
                     </div>
@@ -455,8 +457,8 @@ if (empty($categories_labels)) {
         const salesValues = <?php echo json_encode($sales_values); ?>;
         const productsLabels = <?php echo json_encode($products_labels); ?>;
         const productsValues = <?php echo json_encode($products_values); ?>;
-        const categoriesLabels = <?php echo json_encode($categories_labels); ?>;
-        const categoriesValues = <?php echo json_encode($categories_values); ?>;
+        const tagsLabels = <?php echo json_encode($tags_labels); ?>;
+        const tagsValues = <?php echo json_encode($tags_values); ?>;
 
         const salesCtx = document.getElementById('salesChart').getContext('2d');
         const salesChart = new Chart(salesCtx, {
@@ -563,14 +565,14 @@ if (empty($categories_labels)) {
             }
         });
 
-        // График категорий
-        const categoriesCtx = document.getElementById('categoriesChart').getContext('2d');
-        const categoriesChart = new Chart(categoriesCtx, {
+        // График тегов
+        const tagsCtx = document.getElementById('tagsChart').getContext('2d');
+        const tagsChart = new Chart(tagsCtx, {
             type: 'doughnut',
             data: {
-                labels: categoriesLabels,
+                labels: tagsLabels,
                 datasets: [{
-                    data: categoriesValues,
+                    data: tagsValues,
                     backgroundColor: [
                         'rgba(40, 167, 69, 0.8)',
                         'rgba(13, 110, 253, 0.8)',
