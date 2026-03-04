@@ -13,9 +13,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $price = $_POST['price'] ?? 0;
     $is_active = isset($_POST['is_active']) ? 1 : 0;
     $tag_ids = $_POST['tag_ids'] ?? [];
+    $pet_category_id = $_POST['pet_category_id'] ?? null;
+    $pet_category_id = !empty($pet_category_id) ? (int)$pet_category_id : null;
 
-    $image = $_POST['existing_image'] ?? '';
-    if (!empty($_FILES['image']['name'])) {
+    $current_image = '';
+    if ($id > 0) {
+        $img_query = "SELECT image FROM products WHERE id = ?";
+        $img_stmt = $connection->prepare($img_query);
+        $img_stmt->bind_param("i", $id);
+        $img_stmt->execute();
+        $result = $img_stmt->get_result()->fetch_assoc();
+        $current_image = $result['image'] ?? '';
+        if ($current_image === '0' || $current_image === null) {
+            $current_image = '';
+        }
+    }
+    
+    $image = $current_image;
+
+    if (isset($_FILES['image']) && $_FILES['image']['error'] === UPLOAD_ERR_OK && !empty($_FILES['image']['name'])) {
         $target_dir = "../assets/images/products/";
 
         if (!file_exists($target_dir)) {
@@ -23,27 +39,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         $imageFileType = strtolower(pathinfo($_FILES["image"]["name"], PATHINFO_EXTENSION));
-        $image = 'product_' . time() . '_' . uniqid() . '.' . $imageFileType;
-        $target_file = $target_dir . $image;
+        $new_image = 'product_' . time() . '_' . uniqid() . '.' . $imageFileType;
+        $target_file = $target_dir . $new_image;
 
         $allowed_types = ['jpg', 'jpeg', 'png', 'gif'];
         if (in_array($imageFileType, $allowed_types)) {
             if (move_uploaded_file($_FILES["image"]["tmp_name"], $target_file)) {
-                if (!empty($_POST['existing_image']) && file_exists($target_dir . $_POST['existing_image'])) {
-                    unlink($target_dir . $_POST['existing_image']);
+                if (!empty($current_image) && file_exists($target_dir . $current_image)) {
+                    unlink($target_dir . $current_image);
                 }
-            } else {
-                $image = $_POST['existing_image'] ?? '';
+                $image = $new_image;
             }
-        } else {
-            $image = $_POST['existing_image'] ?? '';
         }
     }
 
     if ($id > 0) {
-        $query = "UPDATE products SET name = ?, description = ?, price = ?, image = ?, is_active = ? WHERE id = ?";
+        $query = "UPDATE products SET name = ?, description = ?, price = ?, image = ?, is_active = ?, pet_category_id = ? WHERE id = ?";
         $stmt = $connection->prepare($query);
-        $stmt->bind_param("ssdiss", $name, $description, $price, $image, $is_active, $id);
+        $stmt->bind_param("ssdssii", $name, $description, $price, $image, $is_active, $pet_category_id, $id);
         $stmt->execute();
 
         $delete_tags_query = "DELETE FROM product_tags WHERE product_id = ?";
@@ -63,9 +76,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
     } else {
-        $query = "INSERT INTO products (name, description, price, image, is_active) VALUES (?, ?, ?, ?, ?)";
+        $query = "INSERT INTO products (name, description, price, image, is_active, pet_category_id) VALUES (?, ?, ?, ?, ?, ?)";
         $stmt = $connection->prepare($query);
-        $stmt->bind_param("ssdss", $name, $description, $price, $image, $is_active);
+        $stmt->bind_param("ssdssi", $name, $description, $price, $image, $is_active, $pet_category_id);
         $stmt->execute();
         $id = $connection->insert_id;
 
@@ -114,6 +127,10 @@ if ($id > 0) {
 $tags_query = "SELECT * FROM tags WHERE is_active = 1 ORDER BY name";
 $tags_result = mysqli_query($connection, $tags_query);
 $tags = mysqli_fetch_all($tags_result, MYSQLI_ASSOC);
+
+$pet_categories_query = "SELECT * FROM pet_categories WHERE is_active = 1 ORDER BY display_order ASC, name ASC";
+$pet_categories_result = mysqli_query($connection, $pet_categories_query);
+$pet_categories = mysqli_fetch_all($pet_categories_result, MYSQLI_ASSOC);
 ?>
 
 <!DOCTYPE html>
@@ -144,7 +161,7 @@ $tags = mysqli_fetch_all($tags_result, MYSQLI_ASSOC);
                     <div class="card-body">
                         <form method="POST" enctype="multipart/form-data" class="needs-validation" novalidate>
                             <input type="hidden" name="id" value="<?php echo $product['id'] ?? 0; ?>">
-                            <input type="hidden" name="existing_image" value="<?php echo $product['image'] ?? ''; ?>">
+                            <input type="hidden" name="existing_image" value="<?php echo htmlspecialchars($product['image'] ?? ''); ?>">
 
                             <div class="mb-3">
                                 <label for="name" class="form-label">Название *</label>
@@ -163,6 +180,20 @@ $tags = mysqli_fetch_all($tags_result, MYSQLI_ASSOC);
                                 <input type="number" class="form-control" id="price" name="price"
                                        value="<?php echo $product['price'] ?? ''; ?>" step="0.01" min="0" required>
                                 <div class="invalid-feedback">Пожалуйста, укажите цену товара</div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="pet_category_id" class="form-label">Категория животного</label>
+                                <select class="form-select" id="pet_category_id" name="pet_category_id">
+                                    <option value="">-- Не выбрана --</option>
+                                    <?php foreach ($pet_categories as $cat): ?>
+                                    <option value="<?php echo $cat['id']; ?>"
+                                            <?php echo (isset($product['pet_category_id']) && $product['pet_category_id'] == $cat['id']) ? 'selected' : ''; ?>>
+                                        <?php echo htmlspecialchars($cat['name']); ?>
+                                    </option>
+                                    <?php endforeach; ?>
+                                </select>
+                                <small class="text-muted">Выберите категорию животных, для которых предназначен товар</small>
                             </div>
 
                             <div class="mb-3">
@@ -193,7 +224,7 @@ $tags = mysqli_fetch_all($tags_result, MYSQLI_ASSOC);
                             <div class="mb-3">
                                 <label for="image" class="form-label">Изображение</label>
                                 <input type="file" class="form-control" id="image" name="image" accept="image/*">
-                                <?php if (!empty($product['image'])): ?>
+                                <?php if (!empty($product['image']) && $product['image'] !== '0'): ?>
                                 <div class="mt-2">
                                     <img src="../assets/images/products/<?php echo htmlspecialchars($product['image']); ?>"
                                          alt="Текущее изображение" class="img-thumbnail" style="max-width: 200px;">

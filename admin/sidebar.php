@@ -11,6 +11,10 @@
         <i class="fas fa-box"></i>
         <span class="sidebar-text">Товары</span>
     </a>
+    <a href="pet_categories.php" class="sidebar-item <?php echo basename($_SERVER['PHP_SELF']) === 'pet_categories.php' ? 'active' : ''; ?>">
+        <i class="fas fa-paw"></i>
+        <span class="sidebar-text">Категории животных</span>
+    </a>
     <a href="tags.php" class="sidebar-item <?php echo basename($_SERVER['PHP_SELF']) === 'tags.php' ? 'active' : ''; ?>">
         <i class="fas fa-tags"></i>
         <span class="sidebar-text">Теги</span>

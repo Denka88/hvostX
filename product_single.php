@@ -55,26 +55,38 @@ if (isset($_SESSION['user_id'])) {
 }
 
 // Получаем теги товара
-$tags_query = "SELECT t.* FROM tags t 
-               INNER JOIN product_tags pt ON t.id = pt.tag_id 
-               WHERE pt.product_id = ? 
+$tags_query = "SELECT t.* FROM tags t
+               INNER JOIN product_tags pt ON t.id = pt.tag_id
+               WHERE pt.product_id = ?
                ORDER BY pt.created_at";
 $tags_stmt = $connection->prepare($tags_query);
 $tags_stmt->bind_param("i", $product_id);
 $tags_stmt->execute();
 $product_tags = $tags_stmt->get_result()->fetch_all(MYSQLI_ASSOC);
 
-// Получаем похожие товары по общим тегам
+// Получаем категорию животного для товара
+$product_category = null;
+if (!empty($product['pet_category_id'])) {
+    $cat_query = "SELECT * FROM pet_categories WHERE id = ?";
+    $cat_stmt = $connection->prepare($cat_query);
+    $cat_stmt->bind_param("i", $product['pet_category_id']);
+    $cat_stmt->execute();
+    $product_category = $cat_stmt->get_result()->fetch_assoc();
+}
+
+// Получаем похожие товары по общим тегам ИЛИ из той же категории
 $related_query = "SELECT DISTINCT p.* FROM products p
-                  INNER JOIN product_tags pt ON p.id = pt.product_id
-                  WHERE pt.tag_id IN (
-                      SELECT tag_id FROM product_tags WHERE product_id = ?
+                  LEFT JOIN product_tags pt ON p.id = pt.product_id
+                  WHERE p.id != ?
+                  AND p.is_active = 1
+                  AND (
+                      pt.tag_id IN (SELECT tag_id FROM product_tags WHERE product_id = ?)
+                      OR p.pet_category_id = ?
                   )
-                  AND p.id != ? 
-                  AND p.is_active = 1 
                   LIMIT 4";
 $related_stmt = $connection->prepare($related_query);
-$related_stmt->bind_param("ii", $product_id, $product_id);
+$related_category_id = $product['pet_category_id'] ?? 0;
+$related_stmt->bind_param("iii", $product_id, $product_id, $related_category_id);
 $related_stmt->execute();
 $related_products = $related_stmt->get_result()->fetch_all(MYSQLI_ASSOC);
 
@@ -87,7 +99,16 @@ $page_title = $product['name'] . " - HvostX";
     <nav aria-label="breadcrumb" class="mb-4">
         <ol class="breadcrumb">
             <li class="breadcrumb-item"><a href="index.php">Главная</a></li>
+            <li class="breadcrumb-item"><a href="categories.php">Категории</a></li>
+            <?php if ($product_category): ?>
+            <li class="breadcrumb-item">
+                <a href="products.php?category=<?php echo htmlspecialchars($product_category['slug']); ?>">
+                    <?php echo htmlspecialchars($product_category['name']); ?>
+                </a>
+            </li>
+            <?php else: ?>
             <li class="breadcrumb-item"><a href="products.php">Товары</a></li>
+            <?php endif; ?>
             <li class="breadcrumb-item active" aria-current="page"><?php echo htmlspecialchars($product['name']); ?></li>
         </ol>
     </nav>
@@ -104,8 +125,15 @@ $page_title = $product['name'] . " - HvostX";
         <div class="col-lg-6">
             <h1 class="mb-3"><?php echo htmlspecialchars($product['name']); ?></h1>
 
-            <div class="d-flex align-items-center mb-3">
-                <span class="badge bg-success me-2">В наличии</span>
+            <div class="d-flex align-items-center mb-3 flex-wrap gap-2">
+                <span class="badge bg-success">В наличии</span>
+                <?php if ($product_category): ?>
+                <a href="products.php?category=<?php echo htmlspecialchars($product_category['slug']); ?>"
+                   class="badge text-decoration-none"
+                   style="background-color: #198754; color: #fff;">
+                    <?php echo htmlspecialchars($product_category['name']); ?>
+                </a>
+                <?php endif; ?>
             </div>
 
             <?php if (!empty($product_tags)): ?>
@@ -172,13 +200,25 @@ $page_title = $product['name'] . " - HvostX";
                 <ul class="list-unstyled">
                     <li><strong>Артикул:</strong> HV-<?php echo str_pad($product['id'], 5, '0', STR_PAD_LEFT); ?></li>
                     <li><strong>Страна:</strong> Россия</li>
+                    <?php if ($product_category): ?>
+                    <li>
+                        <strong>Категория:</strong>
+                        <div class="mt-1">
+                            <a href="products.php?category=<?php echo htmlspecialchars($product_category['slug']); ?>"
+                               class="badge text-decoration-none"
+                               style="background-color: #198754; color: #fff; font-size: 0.85rem;">
+                                <?php echo htmlspecialchars($product_category['name']); ?>
+                            </a>
+                        </div>
+                    </li>
+                    <?php endif; ?>
                     <?php if (!empty($product_tags)): ?>
                     <li>
                         <strong>Теги:</strong>
                         <div class="mt-1">
                             <?php foreach ($product_tags as $tag): ?>
-                            <a href="products.php?tags[]=<?php echo $tag['id']; ?>" 
-                               class="badge text-decoration-none me-1 mb-1" 
+                            <a href="products.php?tags[]=<?php echo $tag['id']; ?>"
+                               class="badge text-decoration-none me-1 mb-1"
                                style="background-color: <?php echo htmlspecialchars($tag['color']); ?>;">
                                 <?php echo htmlspecialchars($tag['name']); ?>
                             </a>

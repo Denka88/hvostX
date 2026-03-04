@@ -8,10 +8,21 @@ require_once 'includes/db.php';
 
 $search = $_GET['search'] ?? '';
 $sort = $_GET['sort'] ?? 'name';
+$category_slug = $_GET['category'] ?? '';
 
 $allowed_sorts = ['name', 'price_asc', 'price_desc', 'popular', 'rating'];
 if (!in_array($sort, $allowed_sorts)) {
     $sort = 'name';
+}
+
+// Получаем категорию животного, если указана
+$selected_category = null;
+if (!empty($category_slug)) {
+    $category_query = "SELECT * FROM pet_categories WHERE slug = ? AND is_active = 1";
+    $category_stmt = $connection->prepare($category_query);
+    $category_stmt->bind_param("s", $category_slug);
+    $category_stmt->execute();
+    $selected_category = $category_stmt->get_result()->fetch_assoc();
 }
 
 $selected_tags = isset($_GET['tags']) && is_array($_GET['tags']) ? $_GET['tags'] : [];
@@ -28,6 +39,12 @@ if (!empty($search)) {
     $params[] = "%$search_escaped%";
     $params[] = "%$search_escaped%";
     $types .= "ss";
+}
+
+if ($selected_category) {
+    $base_where .= " AND p.pet_category_id = ?";
+    $params[] = $selected_category['id'];
+    $types .= "i";
 }
 
 if (!empty($selected_tags)) {
@@ -59,9 +76,9 @@ while ($row = $result->fetch_assoc()) {
 $tags = [];
 if (!empty($matching_product_ids)) {
     $ids_placeholders = implode(',', array_fill(0, count($matching_product_ids), '?'));
-    $available_tags_query = "SELECT DISTINCT t.* FROM tags t 
-                             INNER JOIN product_tags pt ON t.id = pt.tag_id 
-                             WHERE pt.product_id IN ($ids_placeholders) 
+    $available_tags_query = "SELECT DISTINCT t.* FROM tags t
+                             INNER JOIN product_tags pt ON t.id = pt.tag_id
+                             WHERE pt.product_id IN ($ids_placeholders)
                              AND t.is_active = 1
                              ORDER BY t.name";
     $available_stmt = $connection->prepare($available_tags_query);
@@ -127,7 +144,9 @@ if (!empty($selected_tags)) {
 if ($sort !== 'name') $url_params[] = 'sort=' . urlencode($sort);
 if (!empty($url_params)) $base_url .= '?' . implode('&', $url_params);
 
-$page_title = "Наши товары - HvostX";
+$page_title = $selected_category 
+    ? "Товары для " . htmlspecialchars($selected_category['name']) . " - HvostX"
+    : "Наши товары - HvostX";
 ?>
 
 <?php include 'includes/header.php'; ?>
@@ -136,11 +155,51 @@ $page_title = "Наши товары - HvostX";
     <nav aria-label="breadcrumb" class="mb-4">
         <ol class="breadcrumb">
             <li class="breadcrumb-item"><a href="index.php">Главная</a></li>
+            <li class="breadcrumb-item"><a href="categories.php">Категории</a></li>
+            <?php if ($selected_category): ?>
+            <li class="breadcrumb-item active" aria-current="page"><?php echo htmlspecialchars($selected_category['name']); ?></li>
+            <?php else: ?>
             <li class="breadcrumb-item active" aria-current="page">Товары</li>
+            <?php endif; ?>
         </ol>
     </nav>
 
-    <h1 class="mb-4">Наши товары</h1>
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="mb-0">
+            <?php if ($selected_category): ?>
+            <?php echo htmlspecialchars($selected_category['name']); ?>
+            <?php else: ?>
+            Наши товары
+            <?php endif; ?>
+        </h1>
+        <a href="categories.php" class="btn btn-outline-primary">
+            <i class="fas fa-th-large me-2"></i>Все категории
+        </a>
+    </div>
+
+    <div class="row mb-4 align-items-center">
+        <div class="col-md-12">
+            <form method="GET" action="products.php" class="mb-3">
+                <div class="input-group">
+                    <?php if ($selected_category): ?>
+                    <input type="hidden" name="category" value="<?php echo htmlspecialchars($selected_category['slug']); ?>">
+                    <?php endif; ?>
+                    <input type="text" class="form-control" name="search" 
+                           placeholder="Поиск товаров<?php echo $selected_category ? ' в категории ' . htmlspecialchars($selected_category['name']) : ''; ?>..."
+                           value="<?php echo htmlspecialchars($search); ?>">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-search me-1"></i>Найти
+                    </button>
+                    <?php if (!empty($search)): ?>
+                    <a href="products.php<?php echo $selected_category ? '?category=' . urlencode($selected_category['slug']) : ''; ?>" 
+                       class="btn btn-outline-secondary">
+                        <i class="fas fa-times"></i>
+                    </a>
+                    <?php endif; ?>
+                </div>
+            </form>
+        </div>
+    </div>
 
     <div class="row mb-4 align-items-center">
         <div class="col-md-6">
@@ -148,7 +207,6 @@ $page_title = "Наши товары - HvostX";
             <div class="alert alert-info mb-0">
                 <i class="fas fa-search me-2"></i>
                 Результаты поиска по запросу: <strong><?php echo htmlspecialchars($search); ?></strong>
-                <a href="products.php" class="btn btn-sm btn-outline-secondary ms-3">Сбросить поиск</a>
             </div>
             <?php endif; ?>
         </div>
@@ -243,15 +301,25 @@ $page_title = "Наши товары - HvostX";
             <div class="row">
                 <?php foreach ($products as $product): ?>
                 <?php
-                $product_tags_query = "SELECT t.id, t.name, t.color FROM tags t 
-                                       INNER JOIN product_tags pt ON t.id = pt.tag_id 
-                                       WHERE pt.product_id = ? 
+                $product_tags_query = "SELECT t.id, t.name, t.color FROM tags t
+                                       INNER JOIN product_tags pt ON t.id = pt.tag_id
+                                       WHERE pt.product_id = ?
                                        ORDER BY pt.created_at";
                 $product_tags_stmt = $connection->prepare($product_tags_query);
                 $product_tags_stmt->bind_param("i", $product['id']);
                 $product_tags_stmt->execute();
                 $product_tags = $product_tags_stmt->get_result()->fetch_all(MYSQLI_ASSOC);
                 $first_tag = $product_tags[0] ?? null;
+                
+                // Получаем категорию животного для товара
+                $product_category = null;
+                if (!empty($product['pet_category_id'])) {
+                    $cat_query = "SELECT name, icon, color FROM pet_categories WHERE id = ?";
+                    $cat_stmt = $connection->prepare($cat_query);
+                    $cat_stmt->bind_param("i", $product['pet_category_id']);
+                    $cat_stmt->execute();
+                    $product_category = $cat_stmt->get_result()->fetch_assoc();
+                }
                 ?>
                 <div class="col-md-4 col-sm-6 mb-4">
                     <div class="card h-100 product-card">
@@ -261,7 +329,11 @@ $page_title = "Наши товары - HvostX";
                         <span class="badge bg-secondary position-absolute" style="top: 10px; right: 10px; z-index: 10;">Нет в наличии</span>
                         <?php endif; ?>
 
-                        <?php if ($first_tag): ?>
+                        <?php if ($product_category): ?>
+                        <span class="badge position-absolute" style="top: 10px; left: 10px; z-index: 10; background-color: #198754;">
+                            <?php echo htmlspecialchars($product_category['name']); ?>
+                        </span>
+                        <?php elseif ($first_tag): ?>
                         <span class="badge position-absolute" style="top: 10px; left: 10px; z-index: 10; background-color: <?php echo htmlspecialchars($first_tag['color']); ?>;">
                             <?php echo htmlspecialchars($first_tag['name']); ?>
                         </span>

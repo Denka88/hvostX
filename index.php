@@ -28,11 +28,63 @@ $page_title = "Главная - HvostX";
             <div class="col-lg-6">
                 <h1 class="display-4 fw-bold mb-4">Добро пожаловать в HvostX!</h1>
                 <p class="lead mb-4">Ваш надежный поставщик качественных товаров для домашних животных. Мы заботимся о ваших питомцах так же, как и вы!</p>
-                <a href="products.php" class="btn btn-primary btn-lg">Посмотреть все товары</a>
+                <a href="categories.php" class="btn btn-primary btn-lg me-2">Выбрать категорию</a>
+                <a href="products.php" class="btn btn-outline-primary btn-lg">Все товары</a>
             </div>
             <div class="col-lg-6">
                 <img src="assets/images/hero-pets.png" alt="Счастливые домашние животные" class="img-fluid rounded">
             </div>
+        </div>
+    </section>
+
+    <!-- Секция категорий животных -->
+    <section class="categories-section mb-5">
+        <h2 class="mb-4">Категории товаров</h2>
+        <p class="lead text-muted mb-4">Выберите категорию вашего питомца, чтобы увидеть все товары для него</p>
+        <div class="row g-4">
+            <?php
+            $categories_query = "SELECT c.*, 
+                                 (SELECT COUNT(*) FROM products p WHERE p.pet_category_id = c.id AND p.is_active = 1) as products_count
+                                 FROM pet_categories c 
+                                 WHERE c.is_active = 1 
+                                 ORDER BY c.display_order ASC, c.name ASC
+                                 LIMIT 6";
+            $categories_result = mysqli_query($connection, $categories_query);
+            while ($category = mysqli_fetch_assoc($categories_result)):
+            ?>
+            <div class="col-lg-4 col-md-6">
+                <a href="products.php?category=<?php echo htmlspecialchars($category['slug']); ?>" class="text-decoration-none">
+                    <div class="card category-card h-100 animate-scale-hover">
+                        <div class="category-card-image position-relative">
+                            <?php if (!empty($category['image'])): ?>
+                            <img src="assets/images/categories/<?php echo htmlspecialchars($category['image']); ?>"
+                                 class="card-img-top" alt="<?php echo htmlspecialchars($category['name']); ?>"
+                                 style="height: 180px; object-fit: cover;">
+                            <?php else: ?>
+                            <div class="category-placeholder" style="height: 180px; background: linear-gradient(135deg, #19875422, #19875444); display: flex; align-items: center; justify-content: center;">
+                                <span style="font-size: 2.5rem; color: #198754; font-weight: bold;">
+                                    <?php echo htmlspecialchars(mb_substr($category['name'], 0, 1)); ?>
+                                </span>
+                            </div>
+                            <?php endif; ?>
+                        </div>
+                        <div class="card-body text-center">
+                            <h5 class="card-title mb-2"><?php echo htmlspecialchars($category['name']); ?></h5>
+                            <div class="category-products-count">
+                                <span class="badge" style="background-color: #198754; font-size: 0.85rem;">
+                                    <i class="fas fa-box me-1"></i> <?php echo $category['products_count']; ?> товаров
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </a>
+            </div>
+            <?php endwhile; ?>
+        </div>
+        <div class="text-center mt-4">
+            <a href="categories.php" class="btn btn-outline-primary">
+                <i class="fas fa-th-large me-2"></i>Все категории
+            </a>
         </div>
     </section>
 
@@ -178,6 +230,47 @@ $page_title = "Главная - HvostX";
         <a href="partners.php" class="btn btn-outline-secondary">Все партнеры</a>
     </div>
 </section>
+
+<style>
+.category-card {
+    transition: all 0.3s ease;
+    border: none;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    overflow: hidden;
+}
+
+.category-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 5px 20px rgba(0,0,0,0.15);
+}
+
+.category-placeholder {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+}
+
+.animate-scale-hover {
+    transition: transform 0.3s ease;
+}
+
+.animate-scale-hover:hover {
+    transform: scale(1.03);
+}
+
+.category-card-image {
+    overflow: hidden;
+}
+
+.category-card-image img {
+    transition: transform 0.3s ease;
+}
+
+.category-card:hover .category-card-image img {
+    transform: scale(1.1);
+}
+</style>
 </div>
 
 <script>
