@@ -36,7 +36,7 @@ if (session_status() === PHP_SESSION_NONE) {
                                 <a class="nav-link" href="index.php">Главная</a>
                             </li>
                             <li class="nav-item">
-                                <a class="nav-link" href="products.php">Товары</a>
+                                <a class="nav-link" href="categories.php">Товары</a>
                             </li>
                             <li class="nav-item">
                                 <a class="nav-link" href="news.php">Новости</a>
