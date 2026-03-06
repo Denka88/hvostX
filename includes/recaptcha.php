@@ -1,7 +1,7 @@
 <?php
 // /includes/recaptcha.php
-define('RECAPTCHA_SITE_KEY', '-');
-define('RECAPTCHA_SECRET_KEY', '-');
+define('RECAPTCHA_SITE_KEY', '=');
+define('RECAPTCHA_SECRET_KEY', '=');
 
 function verifyRecaptcha($response) {
     if (empty($response)) {

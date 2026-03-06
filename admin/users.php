@@ -63,6 +63,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['edit_user'])) {
     $role = $_POST['role'] ?? 'user';
 
     $avatar = $_POST['existing_avatar'] ?? '';
+    
+    // Обработка аватара из data URL
     if (!empty($_POST['avatar_data'])) {
         $target_dir = "../assets/images/avatars/";
         
@@ -85,6 +87,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['edit_user'])) {
             $target_file = $target_dir . $new_filename;
             
             if (file_put_contents($target_file, $image_data)) {
+                // Удаляем старый аватар если он есть
                 if (!empty($_POST['existing_avatar']) && file_exists($target_dir . $_POST['existing_avatar'])) {
                     unlink($target_dir . $_POST['existing_avatar']);
                 }
@@ -176,6 +179,7 @@ if ($id > 0) {
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link rel="stylesheet" href="../assets/css/admin.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css">
 </head>
 <body>
     <div class="d-flex" id="wrapper">
@@ -231,10 +235,10 @@ if ($id > 0) {
                                         <td>
                                             <?php if (!empty($user['avatar'])): ?>
                                             <img src="../assets/images/avatars/<?php echo htmlspecialchars($user['avatar']); ?>"
-                                                 alt="Аватар" class="rounded-circle"
+                                                 alt="Аватар" class="rounded-circle user-avatar-<?php echo $user['id']; ?>"
                                                  style="width: 40px; height: 40px; object-fit: cover;">
                                             <?php else: ?>
-                                            <div class="rounded-circle bg-secondary d-flex align-items-center justify-content-center text-white"
+                                            <div class="rounded-circle bg-secondary d-flex align-items-center justify-content-center text-white user-avatar-placeholder-<?php echo $user['id']; ?>"
                                                  style="width: 40px; height: 40px; font-size: 0.9rem; font-weight: bold;">
                                                 <?php echo mb_strtoupper(mb_substr($user['name'], 0, 1)); ?>
                                             </div>
@@ -293,6 +297,7 @@ if ($id > 0) {
                                         </td>
                                     </tr>
 
+                                    <!-- Modal View -->
                                     <div class="modal fade" id="viewModal<?php echo $user['id']; ?>" tabindex="-1">
                                         <div class="modal-dialog">
                                             <div class="modal-content">
@@ -337,6 +342,7 @@ if ($id > 0) {
                                         </div>
                                     </div>
 
+                                    <!-- Modal Edit -->
                                     <div class="modal fade" id="editModal<?php echo $user['id']; ?>" tabindex="-1">
                                         <div class="modal-dialog">
                                             <div class="modal-content">
@@ -344,33 +350,33 @@ if ($id > 0) {
                                                     <h5 class="modal-title">Редактирование пользователя #<?php echo $user['id']; ?></h5>
                                                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                                                 </div>
-                                                <form method="POST" action="users.php" enctype="multipart/form-data" id="user-edit-form">
+                                                <form method="POST" action="users.php">
                                                     <div class="modal-body">
                                                         <input type="hidden" name="id" value="<?php echo $user['id']; ?>">
                                                         <input type="hidden" name="edit_user" value="1">
                                                         <input type="hidden" name="existing_avatar" value="<?php echo htmlspecialchars($user['avatar'] ?? ''); ?>">
-                                                        <input type="hidden" name="avatar_data" id="avatar-data" value="">
-                                                        <input type="hidden" name="avatar_type" id="avatar-type" value="png">
+                                                        
+                                                        <!-- Скрытые поля для данных кроппера -->
+                                                        <input type="hidden" name="avatar_data" id="avatar-data-<?php echo $user['id']; ?>" value="">
+                                                        <input type="hidden" name="avatar_type" id="avatar-type-<?php echo $user['id']; ?>" value="png">
 
                                                         <div class="mb-3 text-center">
                                                             <?php if (!empty($user['avatar'])): ?>
                                                             <img src="../assets/images/avatars/<?php echo htmlspecialchars($user['avatar']); ?>"
-                                                                 alt="Текущий аватар" class="rounded-circle mb-2 avatar-preview-img"
+                                                                 alt="Текущий аватар" class="rounded-circle mb-2 avatar-preview-img-<?php echo $user['id']; ?>"
                                                                  style="width: 100px; height: 100px; object-fit: cover;">
-                                                            <p class="text-muted small">Текущий аватар</p>
                                                             <?php else: ?>
-                                                            <div class="rounded-circle bg-secondary d-flex align-items-center justify-content-center text-white mx-auto mb-2 avatar-preview-img"
+                                                            <div class="rounded-circle bg-secondary d-flex align-items-center justify-content-center text-white mx-auto mb-2 avatar-preview-img-<?php echo $user['id']; ?>"
                                                                  style="width: 100px; height: 100px; font-size: 2.5rem; font-weight: bold;">
                                                                 <?php echo mb_strtoupper(mb_substr($user['name'], 0, 1)); ?>
                                                             </div>
-                                                            <p class="text-muted small">Аватар не загружен</p>
                                                             <?php endif; ?>
                                                         </div>
 
                                                         <div class="mb-3">
-                                                            <label for="avatar<?php echo $user['id']; ?>" class="form-label">Загрузить новый аватар</label><br>
+                                                            <label class="form-label">Загрузить новый аватар</label><br>
                                                             <input type="file" id="avatar-input-<?php echo $user['id']; ?>" accept="image/*" style="display: none;">
-                                                            <button type="button" class="btn btn-outline-primary" id="avatar-btn-<?php echo $user['id']; ?>">
+                                                            <button type="button" class="btn btn-outline-primary avatar-btn" data-user-id="<?php echo $user['id']; ?>">
                                                                 <i class="fas fa-image me-2"></i>Выбрать изображение
                                                             </button>
                                                             <small class="text-muted d-block mt-2">JPG, PNG, GIF, WebP (макс. 5MB)</small>
@@ -411,6 +417,7 @@ if ($id > 0) {
                                         </div>
                                     </div>
 
+                                    <!-- Modal Password -->
                                     <div class="modal fade" id="passwordModal<?php echo $user['id']; ?>" tabindex="-1">
                                         <div class="modal-dialog">
                                             <div class="modal-content">
@@ -454,10 +461,91 @@ if ($id > 0) {
         </div>
     </div>
 
+    <!-- Глобальное модальное окно для кроппера -->
+    <div class="modal fade" id="cropModal" tabindex="-1" aria-labelledby="cropModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-xl modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="cropModalLabel">
+                        <i class="fas fa-image me-2"></i>Редактирование аватара
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-0">
+                    <div class="container-fluid">
+                        <div class="row g-0">
+                            <div class="col-lg-8 bg-light d-flex align-items-center justify-content-center" style="min-height: 500px;">
+                                <div class="crop-wrapper position-relative w-100 h-100 d-flex align-items-center justify-content-center p-3">
+                                    <img id="image-to-crop" src="" alt="Изображение для обрезки" class="img-fluid" style="max-height: 450px; max-width: 100%;">
+                                </div>
+                            </div>
+                            <div class="col-lg-4 bg-white border-start">
+                                <div class="p-4 h-100 d-flex flex-column">
+                                    <div class="mb-4 text-center">
+                                        <h6 class="mb-3 text-dark"><i class="fas fa-eye me-2"></i>Предпросмотр</h6>
+                                        
+                                    </div>
+                                    <div class="mb-4">
+                                        <h6 class="mb-3 text-dark text-center"><i class="fas fa-grid me-2"></i>Размеры</h6>
+                                        <div class="d-flex justify-content-center gap-3">
+                                            <div class="text-center">
+                                                <div class="rounded-circle border border-2 border-primary overflow-hidden mx-auto mb-1"
+                                                     style="width: 50px; height: 50px; background: #f8f9fa;">
+                                                    <img id="preview-small" src="" alt="Small" style="width: 100%; height: 100%; object-fit: cover;">
+                                                </div>
+                                                <small class="text-muted" style="font-size: 10px;">50×50</small>
+                                            </div>
+                                            <div class="text-center">
+                                                <div class="rounded-circle border border-2 border-info overflow-hidden mx-auto mb-1"
+                                                     style="width: 80px; height: 80px; background: #f8f9fa;">
+                                                    <img id="preview-medium" src="" alt="Medium" style="width: 100%; height: 100%; object-fit: cover;">
+                                                </div>
+                                                <small class="text-muted" style="font-size: 10px;">80×80</small>
+                                            </div>
+                                            <div class="text-center">
+                                                <div class="rounded-circle border border-2 border-warning overflow-hidden mx-auto mb-1"
+                                                     style="width: 120px; height: 120px; background: #f8f9fa;">
+                                                    <img id="preview-large" src="" alt="Large" style="width: 100%; height: 100%; object-fit: cover;">
+                                                </div>
+                                                <small class="text-muted" style="font-size: 10px;">120×120</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="mb-4 flex-grow-1">
+                                        <div class="card bg-light border-light">
+                                            <div class="card-body p-3">
+                                                <h6 class="card-title text-dark mb-2"><i class="fas fa-info-circle me-2"></i>Информация</h6>
+                                                <ul class="card-text text-muted mb-0 small" style="font-size: 13px;">
+                                                    <li>Перетащите рамку для выбора области</li>
+                                                    <li>Используйте колёсико для масштабирования</li>
+                                                    <li>Двойной клик для сброса</li>
+                                                    <li>Формат: <span id="image-format" class="text-primary">PNG</span></li>
+                                                </ul>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="mt-auto">
+                                        <div class="d-flex gap-2">
+                                            <button type="button" class="btn btn-secondary flex-fill" data-bs-dismiss="modal">
+                                                <i class="fas fa-times me-1"></i>Отмена
+                                            </button>
+                                            <button type="button" class="btn btn-success flex-fill" id="crop-btn">
+                                                <i class="fas fa-check me-1"></i>Применить
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="../assets/js/admin.js"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
+    <script src="../assets/js/admin.js"></script>
 
     <style>
     #cropModal .modal-content {
@@ -528,113 +616,25 @@ if ($id > 0) {
     }
     </style>
 
-    <div class="modal fade" id="cropModal" tabindex="-1" aria-labelledby="cropModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-xl modal-dialog-centered">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="cropModalLabel">
-                        <i class="fas fa-image me-2"></i>Редактирование аватара
-                    </h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body p-0">
-                    <div class="container-fluid">
-                        <div class="row g-0">
-                            <div class="col-lg-8 bg-light d-flex align-items-center justify-content-center" style="min-height: 500px;">
-                                <div class="crop-wrapper position-relative w-100 h-100 d-flex align-items-center justify-content-center p-3">
-                                    <img id="image-to-crop" src="" alt="Изображение для обрезки" class="img-fluid" style="max-height: 450px; max-width: 100%;">
-                                </div>
-                            </div>
-                            <div class="col-lg-4 bg-white border-start">
-                                <div class="p-4 h-100 d-flex flex-column">
-                                    <div class="mb-4 text-center">
-                                        <h6 class="mb-3 text-dark"><i class="fas fa-eye me-2"></i>Предпросмотр</h6>
-                                        <div class="avatar-preview-wrapper position-relative d-inline-block">
-                                            <div class="avatar-preview rounded-circle overflow-hidden border border-3 border-success shadow-lg"
-                                                 style="width: 180px; height: 180px; background: linear-gradient(45deg, #f8f9fa, #e9ecef);">
-                                                <img id="avatar-preview" src="" alt="Предпросмотр" style="width: 100%; height: 100%; object-fit: cover;">
-                                            </div>
-                                            <div class="position-absolute bottom-0 start-0 w-100 text-center bg-dark bg-opacity-75 rounded-bottom py-1">
-                                                <small class="text-white">180×180</small>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div class="mb-4">
-                                        <h6 class="mb-3 text-dark text-center"><i class="fas fa-grid me-2"></i>Размеры</h6>
-                                        <div class="d-flex justify-content-center gap-3">
-                                            <div class="text-center">
-                                                <div class="rounded-circle border border-2 border-primary overflow-hidden mx-auto mb-1"
-                                                     style="width: 50px; height: 50px; background: #f8f9fa;">
-                                                    <img id="preview-small" src="" alt="Small" style="width: 100%; height: 100%; object-fit: cover;">
-                                                </div>
-                                                <small class="text-muted" style="font-size: 10px;">50×50</small>
-                                            </div>
-                                            <div class="text-center">
-                                                <div class="rounded-circle border border-2 border-info overflow-hidden mx-auto mb-1"
-                                                     style="width: 80px; height: 80px; background: #f8f9fa;">
-                                                    <img id="preview-medium" src="" alt="Medium" style="width: 100%; height: 100%; object-fit: cover;">
-                                                </div>
-                                                <small class="text-muted" style="font-size: 10px;">80×80</small>
-                                            </div>
-                                            <div class="text-center">
-                                                <div class="rounded-circle border border-2 border-warning overflow-hidden mx-auto mb-1"
-                                                     style="width: 120px; height: 120px; background: #f8f9fa;">
-                                                    <img id="preview-large" src="" alt="Large" style="width: 100%; height: 100%; object-fit: cover;">
-                                                </div>
-                                                <small class="text-muted" style="font-size: 10px;">120×120</small>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div class="mb-4 flex-grow-1">
-                                        <div class="card bg-light border-light">
-                                            <div class="card-body p-3">
-                                                <h6 class="card-title text-dark mb-2"><i class="fas fa-info-circle me-2"></i>Информация</h6>
-                                                <ul class="card-text text-muted mb-0 small" style="font-size: 13px;">
-                                                    <li>Перетащите рамку для выбора области</li>
-                                                    <li>Используйте колёсико для масштабирования</li>
-                                                    <li>Двойной клик для сброса</li>
-                                                    <li>Формат: <span id="image-format" class="text-primary">PNG</span></li>
-                                                </ul>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div class="mt-auto">
-                                        <div class="d-flex gap-2">
-                                            <button type="button" class="btn btn-secondary flex-fill" data-bs-dismiss="modal">
-                                                <i class="fas fa-times me-1"></i>Отмена
-                                            </button>
-                                            <button type="button" class="btn btn-success flex-fill" id="crop-btn">
-                                                <i class="fas fa-check me-1"></i>Применить
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
     <script>
     (function() {
-        let currentUserId = null;
+        // Глобальные переменные для кроппера
         let cropper = null;
         let cropModal = null;
+        let currentUserId = null;
         let currentFileName = '';
 
+        // Элементы кроппера
         const cropModalElement = document.getElementById('cropModal');
         const imageToCrop = document.getElementById('image-to-crop');
         const cropBtn = document.getElementById('crop-btn');
-        const avatarDataInput = document.getElementById('avatar-data');
-        const avatarTypeInput = document.getElementById('avatar-type');
-        const imageFormatSpan = document.getElementById('image-format');
         const avatarPreview = document.getElementById('avatar-preview');
         const previewSmall = document.getElementById('preview-small');
         const previewMedium = document.getElementById('preview-medium');
         const previewLarge = document.getElementById('preview-large');
+        const imageFormatSpan = document.getElementById('image-format');
 
+        // Инициализация модального окна Bootstrap
         if (typeof bootstrap !== 'undefined' && cropModalElement) {
             cropModal = new bootstrap.Modal(cropModalElement, {
                 backdrop: 'static',
@@ -642,6 +642,7 @@ if ($id > 0) {
             });
         }
 
+        // Функция обновления превью
         function updatePreviews(imageData) {
             if (avatarPreview) avatarPreview.src = imageData;
             if (previewSmall) previewSmall.src = imageData;
@@ -649,9 +650,10 @@ if ($id > 0) {
             if (previewLarge) previewLarge.src = imageData;
         }
 
+        // Функция инициализации загрузчика для конкретного пользователя
         function initAvatarUploader(userId) {
             const avatarInput = document.getElementById('avatar-input-' + userId);
-            const avatarBtn = document.getElementById('avatar-btn-' + userId);
+            const avatarBtn = document.querySelector(`.avatar-btn[data-user-id="${userId}"]`);
 
             if (!avatarInput || !avatarBtn) return;
 
@@ -667,12 +669,14 @@ if ($id > 0) {
 
                 currentFileName = file.name;
 
+                // Проверка размера файла
                 if (file.size > 5 * 1024 * 1024) {
                     alert('Размер файла не должен превышать 5MB');
                     avatarInput.value = '';
                     return;
                 }
 
+                // Проверка типа файла
                 const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
                 if (!allowedTypes.includes(file.type)) {
                     alert('Допустимы только файлы JPG, JPEG, PNG, GIF и WebP');
@@ -683,15 +687,27 @@ if ($id > 0) {
                 const reader = new FileReader();
                 reader.onload = function(event) {
                     imageToCrop.src = event.target.result;
+                    
+                    // Определяем тип изображения
                     const imageType = file.type.split('/')[1] || 'png';
-                    if (avatarTypeInput) avatarTypeInput.value = imageType;
-                    if (imageFormatSpan) imageFormatSpan.textContent = imageType.toUpperCase();
+                    
+                    // Сохраняем тип в соответствующее скрытое поле
+                    const avatarTypeInput = document.getElementById('avatar-type-' + userId);
+                    if (avatarTypeInput) {
+                        avatarTypeInput.value = imageType;
+                    }
+                    
+                    if (imageFormatSpan) {
+                        imageFormatSpan.textContent = imageType.toUpperCase();
+                    }
 
+                    // Уничтожаем старый кроппер если есть
                     if (cropper) {
                         cropper.destroy();
                         cropper = null;
                     }
 
+                    // Инициализируем новый кроппер
                     setTimeout(function() {
                         cropper = new Cropper(imageToCrop, {
                             aspectRatio: 1,
@@ -710,7 +726,8 @@ if ($id > 0) {
                             minContainerHeight: 300,
                         });
 
-                        imageToCrop.addEventListener('crop', function(event) {
+                        // Обновляем превью при изменении области кропа
+                        imageToCrop.addEventListener('crop', function() {
                             if (cropper) {
                                 const canvas = cropper.getCroppedCanvas({
                                     width: 300,
@@ -718,6 +735,7 @@ if ($id > 0) {
                                     imageSmoothingEnabled: true,
                                     imageSmoothingQuality: 'high',
                                 });
+                                
                                 if (canvas) {
                                     const previewData = canvas.toDataURL('image/' + imageType);
                                     updatePreviews(previewData);
@@ -725,6 +743,7 @@ if ($id > 0) {
                             }
                         });
 
+                        // Показываем модальное окно
                         cropModal.show();
                     }, 150);
                 };
@@ -732,6 +751,7 @@ if ($id > 0) {
             });
         }
 
+        // Обработчик кнопки "Применить"
         if (cropBtn) {
             cropBtn.addEventListener('click', function() {
                 if (!cropper) {
@@ -757,38 +777,55 @@ if ($id > 0) {
                         return;
                     }
 
-                    const imageData = canvas.toDataURL('image/' + avatarTypeInput.value);
+                    // Получаем тип изображения для текущего пользователя
+                    const avatarTypeInput = document.getElementById('avatar-type-' + currentUserId);
+                    const imageType = avatarTypeInput ? avatarTypeInput.value : 'png';
+                    
+                    const imageData = canvas.toDataURL('image/' + imageType);
 
                     if (imageData.length > 4 * 1024 * 1024) {
-                        alert('Изображение слишком большое');
+                        alert('Изображение слишком большое. Пожалуйста, выберите изображение меньшего размера.');
                         cropBtn.disabled = false;
                         cropBtn.innerHTML = '<i class="fas fa-check me-2"></i>Применить';
                         return;
                     }
 
-                    avatarDataInput.value = imageData;
+                    // Сохраняем данные в соответствующее скрытое поле
+                    const avatarDataInput = document.getElementById('avatar-data-' + currentUserId);
+                    if (avatarDataInput) {
+                        avatarDataInput.value = imageData;
+                    }
 
-                    if (currentUserId) {
-                        const previewImg = document.querySelector('#editModal' + currentUserId + ' .avatar-preview-img');
-                        if (previewImg && previewImg.tagName === 'IMG') {
+                    // Обновляем превью в модальном окне редактирования
+                    const previewImg = document.querySelector(`.avatar-preview-img-${currentUserId}`);
+                    if (previewImg) {
+                        if (previewImg.tagName === 'IMG') {
                             previewImg.src = imageData;
-                        } else if (previewImg) {
+                        } else {
+                            // Если это placeholder (div), заменяем его на img
                             const newImg = document.createElement('img');
                             newImg.src = imageData;
-                            newImg.className = 'rounded-circle mb-2 avatar-preview-img';
-                            newImg.style = 'width: 100px; height: 100px; object-fit: cover;';
+                            newImg.className = `rounded-circle mb-2 avatar-preview-img-${currentUserId}`;
+                            newImg.style.cssText = 'width: 100px; height: 100px; object-fit: cover;';
                             previewImg.parentNode.replaceChild(newImg, previewImg);
                         }
                     }
 
+                    // Обновляем аватар в таблице
+                    const tableAvatar = document.querySelector(`.user-avatar-${currentUserId}`);
+                    if (tableAvatar) {
+                        tableAvatar.src = imageData;
+                    }
+
                     cropModal.hide();
 
-                    const avatarInput = currentUserId ? document.getElementById('avatar-input-' + currentUserId) : null;
+                    // Очищаем input file
+                    const avatarInput = document.getElementById('avatar-input-' + currentUserId);
                     if (avatarInput) avatarInput.value = '';
 
                 } catch (error) {
                     console.error('Ошибка при обработке изображения:', error);
-                    alert('Произошла ошибка при обработке изображения');
+                    alert('Произошла ошибка при обработке изображения. Попробуйте ещё раз.');
                 } finally {
                     cropBtn.disabled = false;
                     cropBtn.innerHTML = '<i class="fas fa-check me-2"></i>Применить';
@@ -796,20 +833,35 @@ if ($id > 0) {
             });
         }
 
+        // Обработчик закрытия модального окна
         if (cropModalElement) {
             cropModalElement.addEventListener('hidden.bs.modal', function() {
                 if (cropper) {
                     cropper.destroy();
                     cropper = null;
                 }
-                const avatarInput = currentUserId ? document.getElementById('avatar-input-' + currentUserId) : null;
-                if (avatarInput) avatarInput.value = '';
+                // Очищаем input file для текущего пользователя
+                if (currentUserId) {
+                    const avatarInput = document.getElementById('avatar-input-' + currentUserId);
+                    if (avatarInput) avatarInput.value = '';
+                }
             });
         }
 
+        // Инициализация загрузчиков для всех пользователей
         <?php foreach ($users as $user): ?>
         initAvatarUploader(<?php echo $user['id']; ?>);
         <?php endforeach; ?>
+
+        // Обработка клавиши Escape
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape' && cropModalElement && cropModalElement.classList.contains('show')) {
+                if (cropper) {
+                    cropper.destroy();
+                    cropper = null;
+                }
+            }
+        });
     })();
     </script>
 </body>

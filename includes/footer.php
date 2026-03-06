@@ -26,9 +26,6 @@
                     <div class="col-lg-2 col-md-3 col-6 mb-4 mb-md-0">
                         <h5 class="mb-3">Помощь</h5>
                         <ul class="list-unstyled">
-                            <li class="mb-2"><a href="page.php?slug=delivery" class="text-decoration-none">Доставка</a></li>
-                            <li class="mb-2"><a href="page.php?slug=payment" class="text-decoration-none">Оплата</a></li>
-                            <li class="mb-2"><a href="page.php?slug=guarantees" class="text-decoration-none">Гарантии</a></li>
                             <li class="mb-2"><a href="contacts.php" class="text-decoration-none">Связь с нами</a></li>
                         </ul>
                     </div>

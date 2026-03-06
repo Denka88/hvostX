@@ -278,7 +278,7 @@ $pending_count = mysqli_fetch_assoc($pending_result)['count'];
                                                                     <i class="fas fa-check me-1"></i> Одобрить
                                                                 </a>
                                                                 <?php endif; ?>
-                                                                <a href="reviews.php?action=delete&id=<?php echo $review['id']; ?>" class="btn btn-danger" onclick="return confirm('Вы уверены, что хотите удалить этот отзыв?')">
+                                                                <a href="reviews.php?action=delete&id=<?php echo $review['id']; ?>" class="btn btn-danger" style="color: #fff;" onclick="return confirm('Вы уверены, что хотите удалить этот отзыв?')">
                                                                     <i class="fas fa-trash me-1"></i> Удалить
                                                                 </a>
                                                             </div>
