@@ -50,6 +50,7 @@ $status_labels = [
 $status_info = $status_labels[$order['status']] ?? ['text' => 'Неизвестно', 'class' => 'secondary'];
 
 $page_title = "Заказ #" . $order_id . " - HvostX";
+$meta_description = "Заказ #" . $order_id . " успешно оформлен. Информация о заказе в HvostX.";
 ?>
 
 <!DOCTYPE html>

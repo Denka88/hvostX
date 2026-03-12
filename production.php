@@ -5,6 +5,9 @@ if (session_status() === PHP_SESSION_NONE) {
 }
 
 require_once 'includes/db.php';
+
+$page_title = "О продукции - HvostX";
+$meta_description = "О продукции HvostX: современное производство, контроль качества, отборное сырье. Европейские стандарты производства товаров для животных.";
 ?>
 
 <!DOCTYPE html>

@@ -25,6 +25,7 @@ $stmt->execute();
 $favorites = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
 
 $page_title = "Избранное - HvostX";
+$meta_description = "Ваши избранные товары в HvostX. Сохраняйте понравившиеся товары для быстрого доступа.";
 ?>
 
 <?php include 'includes/header.php'; ?>

@@ -5,6 +5,9 @@ if (session_status() === PHP_SESSION_NONE) {
 }
 
 require_once 'includes/db.php';
+
+$page_title = "О компании - HvostX";
+$meta_description = "О компании HvostX — ведущий поставщик товаров для домашних животных в России. Наша миссия, ценности и команда профессионалов.";
 ?>
 
 <!DOCTYPE html>

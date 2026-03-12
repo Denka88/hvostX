@@ -39,6 +39,7 @@ $status_labels = [
 ];
 
 $page_title = "Профиль - HvostX";
+$meta_description = "Личный кабинет пользователя HvostX. Управление профилем, история заказов, настройки аккаунта.";
 ?>
 
 <?php include 'includes/header.php'; ?>

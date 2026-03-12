@@ -18,6 +18,7 @@ $query = "SELECT * FROM news WHERE is_active = 1 ORDER BY created_at DESC LIMIT 
 $result = mysqli_query($connection, $query);
 
 $page_title = "Новости - HvostX";
+$meta_description = "Новости HvostX: акции, новые поступления, события компании. Будьте в курсе последних новостей мира товаров для животных.";
 ?>
 
 <?php include 'includes/header.php'; ?>

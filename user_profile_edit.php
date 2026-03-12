@@ -152,6 +152,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 $page_title = "Редактирование профиля - HvostX";
+$meta_description = "Редактирование профиля пользователя HvostX. Изменение личных данных, телефона, аватара.";
 ?>
 
 <?php include 'includes/header.php'; ?>

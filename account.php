@@ -121,6 +121,9 @@ if (isset($_POST['submit_register'])) {
         }
     }
 }
+
+$page_title = "Личный кабинет - HvostX";
+$meta_description = "Вход и регистрация в HvostX. Авторизуйтесь для доступа к личному кабинету и покупкам.";
 ?>
 
 <!DOCTYPE html>

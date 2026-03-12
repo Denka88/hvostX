@@ -7,6 +7,7 @@ if (session_status() === PHP_SESSION_NONE) {
 require_once 'includes/db.php';
 
 $page_title = "Страница не найдена - 404";
+$meta_description = "Страница не найдена. Возможно, вы ввели неверный адрес или страница была удалена. Вернитесь на главную HvostX.";
 $http_response_code = 404;
 http_response_code($http_response_code);
 ?>

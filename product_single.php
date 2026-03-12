@@ -91,6 +91,7 @@ $related_stmt->execute();
 $related_products = $related_stmt->get_result()->fetch_all(MYSQLI_ASSOC);
 
 $page_title = $product['name'] . " - HvostX";
+$meta_description = htmlspecialchars(strip_tags($product['description']));
 ?>
 
 <?php include 'includes/header.php'; ?>

@@ -18,6 +18,7 @@ $news_query = "SELECT * FROM news WHERE is_active = 1 ORDER BY created_at DESC L
 $news_result = mysqli_query($connection, $news_query);
 
 $page_title = "Главная - HvostX";
+$meta_description = "HvostX — товары для домашних животных с доставкой. Корма, игрушки, аксессуары для собак, кошек и других питомцев. Выгодные цены, высокое качество.";
 ?>
 
 <?php include 'includes/header.php'; ?>

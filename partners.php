@@ -8,6 +8,9 @@ require_once 'includes/db.php';
 
 $query = "SELECT * FROM partners WHERE is_active = 1 ORDER BY partner_order";
 $result = mysqli_query($connection, $query);
+
+$page_title = "Наши партнеры - HvostX";
+$meta_description = "Наши партнеры — надежные поставщики и бренды, с которыми сотрудничает HvostX для предоставления качественных товаров.";
 ?>
 
 <!DOCTYPE html>

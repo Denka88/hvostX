@@ -152,6 +152,9 @@ $total_price = 0;
 foreach ($cart_items as $item) {
     $total_price += $item['price'] * $item['quantity'];
 }
+
+$page_title = "Корзина - HvostX";
+$meta_description = "Ваша корзина покупок в HvostX. Оформите заказ на товары для домашних животных.";
 ?>
 
 <!DOCTYPE html>

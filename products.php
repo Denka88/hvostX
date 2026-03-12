@@ -144,9 +144,12 @@ if (!empty($selected_tags)) {
 if ($sort !== 'name') $url_params[] = 'sort=' . urlencode($sort);
 if (!empty($url_params)) $base_url .= '?' . implode('&', $url_params);
 
-$page_title = $selected_category 
+$page_title = $selected_category
     ? "Товары для " . htmlspecialchars($selected_category['name']) . " - HvostX"
     : "Наши товары - HvostX";
+$meta_description = $selected_category
+    ? "Товары для " . htmlspecialchars($selected_category['name']) . " в HvostX. Корма, игрушки и аксессуары для ваших питомцев."
+    : "Каталог товаров для домашних животных в HvostX. Корма, игрушки, лежанки, переноски и другие товары.";
 ?>
 
 <?php include 'includes/header.php'; ?>

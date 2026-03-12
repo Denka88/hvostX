@@ -75,6 +75,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 }
+
+$page_title = "Оформление заказа - HvostX";
+$meta_description = "Оформление заказа в HvostX. Быстрое оформление покупки товаров для питомцев.";
 ?>
 
 <!DOCTYPE html>

@@ -3,12 +3,15 @@
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
+
+$meta_description = $meta_description ?? 'HvostX - интернет-магазин товаров для домашних животных. Корма, игрушки, аксессуары и всё необходимое для ваших питомцев. Качественная продукция, быстрая доставка.';
 ?>
 <!DOCTYPE html>
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="<?php echo htmlspecialchars($meta_description); ?>">
     <title><?php echo $page_title ?? 'HvostX - Товары для домашних животных'; ?></title>
     <link rel="icon" href="assets/images/favicon.ico" type="image/x-icon">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">

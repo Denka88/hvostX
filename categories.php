@@ -16,6 +16,7 @@ $categories = mysqli_query($connection, $categories_query);
 $categories_list = mysqli_fetch_all($categories, MYSQLI_ASSOC);
 
 $page_title = "Категории товаров - HvostX";
+$meta_description = "Категории товаров для животных: собаки, кошки, птицы, грызуны, рыбы. Выберите категорию вашего питомца в HvostX.";
 ?>
 
 <?php include 'includes/header.php'; ?>

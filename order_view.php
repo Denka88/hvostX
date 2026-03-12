@@ -48,6 +48,7 @@ $status_labels = [
 $status = $status_labels[$order['status']] ?? ['label' => $order['status'], 'class' => 'bg-secondary'];
 
 $page_title = "Заказ #{$order_id} - HvostX";
+$meta_description = "Просмотр заказа #" . $order_id . " в HvostX. Детали заказа, статус, состав.";
 ?>
 
 <?php include 'includes/header.php'; ?>
