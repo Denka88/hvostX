@@ -1,3 +1,19 @@
 User-agent: *
-Allow: 
 Disallow: /admin/
+Disallow: /includes/
+Disallow: /assets/
+Disallow: /api_*.php
+Disallow: /redirect.php
+Disallow: /account.php
+Disallow: /profile.php
+Disallow: /user_profile_edit.php
+Disallow: /favorites.php
+Disallow: /cart.php
+Disallow: /checkout.php
+Disallow: /order_success.php
+Disallow: /order_view.php
+Disallow: /404.php
+Disallow: /*?*
+Disallow: /*&*
+Disallow: /*PHPSESSID*
+Disallow: /*sessionid*
