@@ -30,6 +30,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (empty($name)) $errors[] = 'Пожалуйста, укажите ваше имя';
     if (empty($email) || !filter_var($email, FILTER_VALIDATE_EMAIL)) $errors[] = 'Пожалуйста, укажите корректный email';
     if (empty($message)) $errors[] = 'Пожалуйста, введите ваше сообщение';
+    
+    // Проверка на полное заполнение номера телефона
+    if (!empty($phone)) {
+        $cleanPhone = preg_replace('/\D/', '', $phone);
+        if (strlen($cleanPhone) !== 11) { // 7 (код) XXX XXX XX XX = 11 цифр
+            $errors[] = 'Пожалуйста, введите полностью номер телефона в формате +7 (XXX) XXX-XX-XX';
+        }
+    }
 
     if (empty($errors)) {
         $stmt = $connection->prepare("INSERT INTO contact_messages (name, email, phone, message, created_at) VALUES (?, ?, ?, ?, NOW())");
@@ -39,9 +47,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $success = "Ваше сообщение успешно отправлено! Мы свяжемся с вами в ближайшее время.";
     }
 }
-
-$page_title = "Контакты - HvostX";
-$meta_description = "Контактная информация HvostX: адрес, телефон, email. Связаться с нами можно по телефону +7 (902) 758-00-03 или через форму обратной связи.";
 ?>
 
 <!DOCTYPE html>
@@ -88,7 +93,7 @@ $meta_description = "Контактная информация HvostX: адре�
                     </div>
                     <div class="mb-3">
                         <label for="phone" class="form-label">Телефон</label>
-                        <input type="tel" class="form-control" id="phone" name="phone">
+                        <input type="tel" class="form-control" id="phone" name="phone" placeholder="+7 (___) ___-__-__">
                     </div>
                     <div class="mb-3">
                         <label for="message" class="form-label">Ваше сообщение *</label>
@@ -146,21 +151,78 @@ $meta_description = "Контактная информация HvostX: адре�
 
     <?php include 'includes/footer.php'; ?>
 
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
     <script>
     const phoneInput = document.getElementById('phone');
+    
     if (phoneInput) {
+        // Блокируем ввод текста (разрешены только цифры и управляющие клавиши)
+        phoneInput.addEventListener('keydown', function(e) {
+            // Разрешаем: Backspace, Delete, Tab, Escape, Enter, стрелки, Home, End
+            if ([46, 8, 9, 27, 13, 37, 38, 39, 40, 36, 35].indexOf(e.keyCode) !== -1 ||
+                // Разрешаем Ctrl+A, Ctrl+C, Ctrl+V, Ctrl+X
+                (e.keyCode === 65 && (e.ctrlKey === true || e.metaKey === true)) ||
+                (e.keyCode === 67 && (e.ctrlKey === true || e.metaKey === true)) ||
+                (e.keyCode === 86 && (e.ctrlKey === true || e.metaKey === true)) ||
+                (e.keyCode === 88 && (e.ctrlKey === true || e.metaKey === true))) {
+                return;
+            }
+            
+            // Блокируем ввод букв и спецсимволов (разрешены только цифры)
+            if ((e.keyCode < 48 || e.keyCode > 57) && (e.keyCode < 96 || e.keyCode > 105)) {
+                e.preventDefault();
+            }
+        });
+
+        // Форматирование номера телефона
         phoneInput.addEventListener('input', function(e) {
             let value = e.target.value.replace(/\D/g, '');
+            
+            // Ограничиваем длину до 11 цифр (7 + 10 цифр номера)
+            if (value.length > 11) {
+                value = value.substring(0, 11);
+            }
+            
             if (value.length > 0) {
-                if (value[0] === '7' || value[0] === '8') {
+                // Убираем первую цифру если это 7 или 8 (для формата +7)
+                if (value.length > 1 && (value[0] === '7' || value[0] === '8')) {
                     value = value.substring(1);
                 }
+                
                 let formatted = '+7';
-                if (value.length > 0) formatted += ' (' + value.substring(0, 3);
-                if (value.length > 3) formatted += ') ' + value.substring(3, 6);
-                if (value.length > 6) formatted += '-' + value.substring(6, 8);
-                if (value.length > 8) formatted += '-' + value.substring(8, 10);
+                
+                if (value.length > 0) {
+                    formatted += ' (' + value.substring(0, Math.min(3, value.length));
+                }
+                
+                if (value.length > 3) {
+                    formatted += ') ' + value.substring(3, Math.min(6, value.length));
+                }
+                
+                if (value.length > 6) {
+                    formatted += '-' + value.substring(6, Math.min(8, value.length));
+                }
+                
+                if (value.length > 8) {
+                    formatted += '-' + value.substring(8, Math.min(10, value.length));
+                }
+                
                 e.target.value = formatted;
+            } else {
+                e.target.value = '';
+            }
+        });
+
+        // Дополнительная проверка при отправке формы
+        document.querySelector('form').addEventListener('submit', function(e) {
+            const phoneValue = phoneInput.value;
+            if (phoneValue && phoneValue.trim() !== '') {
+                const cleanPhone = phoneValue.replace(/\D/g, '');
+                if (cleanPhone.length !== 11) {
+                    e.preventDefault();
+                    alert('Пожалуйста, введите полностью номер телефона в формате +7 (XXX) XXX-XX-XX');
+                }
             }
         });
     }
