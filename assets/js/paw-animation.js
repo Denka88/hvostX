@@ -1,23 +1,13 @@
-/**
- * Анимация кошачьих следов на фоне
- * Все следы создаются сразу на фиксированных позициях страницы
- * При скролле вниз - следы появляются, когда центр экрана проходит их позицию
- * При скролле вверх - следы исчезают в обратном порядке
- */
-
 document.addEventListener('DOMContentLoaded', function() {
-    // Отключаем на мобильных
     if (window.innerWidth <= 768) {
         return;
     }
 
-    // Создаем контейнер для следов
     const container = document.createElement('div');
     container.className = 'paw-tracks-container';
     container.id = 'pawTracksContainer';
     document.body.insertBefore(container, document.body.firstChild);
 
-    // SVG кошачьей лапки
     const pawSvg = `
         <svg viewBox="0 0 21000 29700" xmlns="http://www.w3.org/2000/svg">
             <path d="M11006.2 11783.07c-1068.32,263.53 -672.62,1109.1 -1852.19,2063.86 -244.39,197.82 -436.04,366.41 -590.98,723.68 -319.37,736.39 77.79,1531.39 629.8,1750.48 862.11,342.1 1459.79,-313.58 2200.29,-188.88 657.49,110.74 1750.95,738.72 2371.28,-324.49 287.11,-492.06 201.47,-1085.88 -92.33,-1515.84 -141.74,-207.48 -297.25,-333.13 -478.07,-478.15 -349.94,-280.66 -527.57,-496.05 -750.86,-902.81 -75.11,-136.83 -129.04,-287.56 -204.92,-432.15 -72.05,-137.22 -186.97,-304.43 -271.18,-385.75 -186.15,-179.69 -562.7,-408.19 -960.84,-309.95z"/>
@@ -30,24 +20,20 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Параметры
     const config = {
-        spacing: 250,          // Расстояние между парами следов
-        leftOffset: '5%',      // Позиция левых следов
-        rightOffset: '5%',     // Позиция правых следов
-        leftRotation: 165,     // Поворот левой лапки
-        rightRotation: 195,    // Поворот правой лапки
-        rotationRandom: 30,    // Случайное отклонение поворота (±15°)
-        xOffsetRandom: 20,     // Случайное смещение по горизонтали (±10%)
-        yOffsetRandom: 20,     // Случайное смещение по вертикали (±10px)
+        spacing: 250,
+        leftOffset: '5%',
+        rightOffset: '5%',
+        leftRotation: 165,
+        rightRotation: 195,
+        rotationRandom: 30,
+        xOffsetRandom: 20,
+        yOffsetRandom: 20,
     };
 
-    // Все следы на странице
     let allTracks = [];
     let lastScrollTop = 0;
     let lastVisibleIndex = -1;
 
-    /**
-     * Создаёт все следы на странице сразу
-     */
     function createAllTracks() {
         const docHeight = document.documentElement.scrollHeight;
         const numTracks = Math.ceil(docHeight / config.spacing);
@@ -56,13 +42,11 @@ document.addEventListener('DOMContentLoaded', function() {
             const y = i * config.spacing + 100;
             const side = i % 2 === 0 ? 'left' : 'right';
 
-            // Создаём элемент
             const track = document.createElement('div');
             track.className = `paw-track ${side}`;
             track.innerHTML = pawSvg;
             track.style.top = y + 'px';
 
-            // Случайные смещения для разнообразия
             const randomRotation = (Math.random() - 0.5) * config.rotationRandom;
             const randomOffset = (Math.random() - 0.5) * config.xOffsetRandom;
             const randomYOffset = (Math.random() - 0.5) * config.yOffsetRandom;
@@ -72,7 +56,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
             container.appendChild(track);
 
-            // Сохраняем информацию о следе
             allTracks.push({
                 element: track,
                 y: y,
@@ -83,16 +66,11 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    /**
-     * Обновляет видимость следов на основе позиции скролла
-     */
     function updateTracksVisibility() {
         const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
         const viewportHeight = window.innerHeight;
         const centerScrollY = scrollTop + viewportHeight / 2;
 
-        // Находим индекс последнего следа, который должен быть виден
-        // След виден, если его Y <= центру экрана (с небольшим запасом)
         let newVisibleIndex = -1;
         for (let i = 0; i < allTracks.length; i++) {
             if (allTracks[i].y <= centerScrollY - 50) {
@@ -101,8 +79,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 break;
             }
         }
-
-        // Если скроллим вниз - показываем новые следы
         if (newVisibleIndex > lastVisibleIndex) {
             for (let i = lastVisibleIndex + 1; i <= newVisibleIndex; i++) {
                 if (allTracks[i]) {
@@ -113,7 +89,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             }
         }
-        // Если скроллим вверх - скрываем следы
         else if (newVisibleIndex < lastVisibleIndex) {
             for (let i = lastVisibleIndex; i > newVisibleIndex; i--) {
                 if (allTracks[i]) {
@@ -127,19 +102,14 @@ document.addEventListener('DOMContentLoaded', function() {
         lastScrollTop = scrollTop;
     }
 
-    /**
-     * Обновляет позицию контейнера (height)
-     */
     function updateContainerHeight() {
         const docHeight = document.documentElement.scrollHeight;
         container.style.height = docHeight + 'px';
     }
 
-    // Инициализация
     createAllTracks();
     updateContainerHeight();
     
-    // Сразу показываем следы, которые уже в видимой области
     const initialScrollTop = window.pageYOffset || document.documentElement.scrollTop;
     const viewportHeight = window.innerHeight;
     const initialCenter = initialScrollTop + viewportHeight / 2;
@@ -152,7 +122,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // Обработчик скролла
     let ticking = false;
     window.addEventListener('scroll', function() {
         if (!ticking) {
@@ -165,7 +134,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }, { passive: true });
 
-    // Ресайз окна
     window.addEventListener('resize', function() {
         updateContainerHeight();
     });
